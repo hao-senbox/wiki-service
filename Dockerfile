@@ -50,7 +50,7 @@ RUN chown -R appuser:appgroup /app
 USER appuser
 
 # Expose port (matches default config)
-EXPOSE 8080
+EXPOSE 8023
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
