@@ -14,11 +14,20 @@ func SetUpWikiRoutes(app *fiber.App, serviceHandler *handler.WikiHandler, userGa
 
 	wikiGroups := api.Group("/wikis")
 	{
+		 // Templates
 		wikiGroups.Post("/template", serviceHandler.CreateWikiTemplate)
 		wikiGroups.Get("/template", serviceHandler.GetTemplate)
+
+		// Statistics
 		wikiGroups.Get("/statistics", serviceHandler.GetStatistics)
-		wikiGroups.Get("", serviceHandler.GetWikis)
+
+		// Query by code
 		wikiGroups.Get("/code", serviceHandler.GetWikiByCode)
+
+		// List
+		wikiGroups.Get("", serviceHandler.GetWikis)
+
+		// Single item
 		wikiGroups.Get("/:id", serviceHandler.GetWikiByID)
 		wikiGroups.Put("/:id", serviceHandler.UpdateWiki)
 	}

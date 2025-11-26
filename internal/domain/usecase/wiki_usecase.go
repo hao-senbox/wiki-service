@@ -18,12 +18,12 @@ import (
 
 type WikiUseCase interface {
 	CreateWikiTemplate(ctx context.Context, req request.CreateWikiTemplateRequest, userID string) error
+	GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error)
+	GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
+	GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error)
 	GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error)
 	GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error)
-	GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error)
 	UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error
-	GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
-	GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error)
 }
 
 type wikiUseCase struct {
@@ -104,66 +104,7 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 	return u.wikiRepo.CreateMany(ctx, wikis, req.Type, req.OrganizationID)
 }
 
-func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error) {
-	if organizationID == "" {
-		return nil, 0, errors.New("organizationID is required")
-	}
-
-	if typeParam == "" {
-		return nil, 0, errors.New("type is required")
-	}
-
-	if page < 1 {
-		return nil, 0, errors.New("page must be greater than 0")
-	}
-
-	if limit < 1 {
-		return nil, 0, errors.New("limit must be greater than 0")
-	}
-
-	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit, typeParam, search)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if language != nil {
-		filterTranslations(wikis, language)
-	}
-
-	return wikis, total, nil
-}
-
-func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error) {
-	if id == "" {
-		return nil, errors.New("id is required")
-	}
-
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, errors.New("invalid id format")
-	}
-
-	wiki, err := u.wikiRepo.GetWikiByID(ctx, objectID)
-	if err != nil {
-		return nil, err
-	}
-
-	if wiki == nil {
-		return nil, errors.New("wiki not found")
-	}
-
-	if language != nil {
-		filterTranslations([]*entity.Wiki{wiki}, language)
-	}
-
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
-}
-
-func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error) {
-	if code == "" {
-		return nil, errors.New("code is required")
-	}
-
+func (u *wikiUseCase) GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
 	if organizationID == "" {
 		return nil, errors.New("organizationID is required")
 	}
@@ -172,21 +113,7 @@ func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *
 		return nil, errors.New("type is required")
 	}
 
-	wiki, err := u.wikiRepo.GetWikiByCode(ctx, code, organizationID, typeParam)
-	if err != nil {
-		return nil, err
-	}
-
-	if wiki == nil {
-		return nil, errors.New("wiki not found")
-	}
-
-	if language != nil {
-		filterTranslations([]*entity.Wiki{wiki}, language)
-	}
-
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
-
+	return u.wikiRepo.GetTemplates(ctx, organizationID, typeParam)
 }
 
 func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error) {
@@ -311,6 +238,91 @@ func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, 
 	}
 
 	return responses, nil
+}
+
+func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error) {
+	if code == "" {
+		return nil, errors.New("code is required")
+	}
+
+	if organizationID == "" {
+		return nil, errors.New("organizationID is required")
+	}
+
+	if typeParam == "" {
+		return nil, errors.New("type is required")
+	}
+
+	wiki, err := u.wikiRepo.GetWikiByCode(ctx, code, organizationID, typeParam)
+	if err != nil {
+		return nil, err
+	}
+
+	if wiki == nil {
+		return nil, errors.New("wiki not found")
+	}
+
+	if language != nil {
+		filterTranslations([]*entity.Wiki{wiki}, language)
+	}
+
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
+
+}
+
+func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error) {
+	if organizationID == "" {
+		return nil, 0, errors.New("organizationID is required")
+	}
+
+	if typeParam == "" {
+		return nil, 0, errors.New("type is required")
+	}
+
+	if page < 1 {
+		return nil, 0, errors.New("page must be greater than 0")
+	}
+
+	if limit < 1 {
+		return nil, 0, errors.New("limit must be greater than 0")
+	}
+
+	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit, typeParam, search)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if language != nil {
+		filterTranslations(wikis, language)
+	}
+
+	return wikis, total, nil
+}
+
+func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error) {
+	if id == "" {
+		return nil, errors.New("id is required")
+	}
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, errors.New("invalid id format")
+	}
+
+	wiki, err := u.wikiRepo.GetWikiByID(ctx, objectID)
+	if err != nil {
+		return nil, err
+	}
+
+	if wiki == nil {
+		return nil, errors.New("wiki not found")
+	}
+
+	if language != nil {
+		filterTranslations([]*entity.Wiki{wiki}, language)
+	}
+
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
 }
 
 func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error {
@@ -538,18 +550,6 @@ func filterTranslations(wikis []*entity.Wiki, language *int) {
 
 		wiki.Translation = filtered
 	}
-}
-
-func (u *wikiUseCase) GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
-	if organizationID == "" {
-		return nil, errors.New("organizationID is required")
-	}
-
-	if typeParam == "" {
-		return nil, errors.New("type is required")
-	}
-
-	return u.wikiRepo.GetTemplates(ctx, organizationID, typeParam)
 }
 
 func validateElements(elements []request.Element) error {

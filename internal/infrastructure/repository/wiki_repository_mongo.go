@@ -23,6 +23,37 @@ func NewWikiRepositoryMongo(db *mongo.Database) repository.WikiRepository {
 	}
 }
 
+func (r *wikiRepositoryMongo) CreateTemplate(ctx context.Context, template *entity.WikiTemplate) error {
+	filter := bson.M{
+		"organization_id": template.OrganizationID,
+		"type":            template.Type,
+	}
+	if _, err := r.templateCollection.DeleteOne(ctx, filter); err != nil {
+		return err
+	}
+
+	_, err := r.templateCollection.InsertOne(ctx, template)
+	return err
+}
+
+func (r *wikiRepositoryMongo) GetTemplates(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
+	filter := bson.M{
+		"organization_id": organizationID,
+		"type":            typeParam,
+	}
+
+	var template entity.WikiTemplate
+	err := r.templateCollection.FindOne(ctx, filter).Decode(&template)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &template, nil
+}
+
 func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wiki, typeParam string, organizationID string) error {
 	filter := bson.M{
 		"organization_id": organizationID,
@@ -130,33 +161,3 @@ func (r *wikiRepositoryMongo) UpdateWiki(ctx context.Context, id primitive.Objec
 	return err
 }
 
-func (r *wikiRepositoryMongo) CreateTemplate(ctx context.Context, template *entity.WikiTemplate) error {
-	filter := bson.M{
-		"organization_id": template.OrganizationID,
-		"type":            template.Type,
-	}
-	if _, err := r.templateCollection.DeleteOne(ctx, filter); err != nil {
-		return err
-	}
-
-	_, err := r.templateCollection.InsertOne(ctx, template)
-	return err
-}
-
-func (r *wikiRepositoryMongo) GetTemplates(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
-	filter := bson.M{
-		"organization_id": organizationID,
-		"type":            typeParam,
-	}
-
-	var template entity.WikiTemplate
-	err := r.templateCollection.FindOne(ctx, filter).Decode(&template)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	return &template, nil
-}
