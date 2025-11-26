@@ -1,9 +1,54 @@
+# Git
 .git
 .gitignore
-README.md
-.env
-bin/
-coverage.out
-*.log
-.DS_Store
+.gitattributes
 
+# Documentation
+README.md
+README_*.md
+*.md
+docs/
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development files
+.env
+.env.local
+.env.*.local
+.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test files
+*_test.go
+test_*.go
+
+# Build artifacts
+wiki-service
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Postman collections (not needed in container)
+*.postman_collection.json
+postman_*.json

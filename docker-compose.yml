@@ -1,24 +1,36 @@
 version: '3.8'
 
 services:
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: wiki-service-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: services_management
-      MYSQL_USER: servicesuser
-      MYSQL_PASSWORD: servicespassword
+  # Wiki Service Application
+  wiki-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wiki-service-app
     ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./migrations:/docker-entrypoint-initdb.d
+      - "8080:8080"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB_NAME=services_management
+      - MONGO_USER=root
+      - MONGO_PASSWORD=rootpassword
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mongodb:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
 
   # MongoDB Database
   mongodb:
@@ -33,7 +45,38 @@ services:
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/services_management --quiet
       interval: 10s
       timeout: 10s
       retries: 5
+
+  # Redis Cache (if needed)
+  redis:
+    image: redis:7.2-alpine
+    container_name: wiki-service-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Consul Service Discovery (if needed)
+  consul:
+    image: consul:1.15
+    container_name: wiki-service-consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: consul agent -server -bootstrap -ui -client=0.0.0.0
+    volumes:
+      - consul_data:/consul/data
+
+volumes:
+  mongo_data:
+  redis_data:
+  consul_data:
