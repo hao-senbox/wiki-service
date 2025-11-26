@@ -103,6 +103,24 @@ func (r *wikiRepositoryMongo) GetWikiByID(ctx context.Context, id primitive.Obje
 	return &wiki, nil
 }
 
+func (r *wikiRepositoryMongo) GetWikiByCode(ctx context.Context, code string, organizationID string, typeParam string) (*entity.Wiki, error) {
+	filter := bson.M{
+		"code":            code,
+		"organization_id": organizationID,
+		"type":            typeParam,
+	}
+
+	var wiki entity.Wiki
+	err := r.collection.FindOne(ctx, filter).Decode(&wiki)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &wiki, nil
+}
+
 func (r *wikiRepositoryMongo) UpdateWiki(ctx context.Context, id primitive.ObjectID, wiki *entity.Wiki) error {
 	filter := bson.M{
 		"_id": id,

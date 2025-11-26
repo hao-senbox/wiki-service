@@ -20,6 +20,7 @@ type WikiUseCase interface {
 	CreateWikiTemplate(ctx context.Context, req request.CreateWikiTemplateRequest, userID string) error
 	GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error)
 	GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error)
+	GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error)
 	UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error
 	GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
 	GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error)
@@ -147,11 +148,45 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		return nil, err
 	}
 
-	if wiki != nil && language != nil {
+	if wiki == nil {
+		return nil, errors.New("wiki not found")
+	}
+
+	if language != nil {
 		filterTranslations([]*entity.Wiki{wiki}, language)
 	}
 
 	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
+}
+
+func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error) {
+	if code == "" {
+		return nil, errors.New("code is required")
+	}
+
+	if organizationID == "" {
+		return nil, errors.New("organizationID is required")
+	}
+
+	if typeParam == "" {
+		return nil, errors.New("type is required")
+	}
+
+	wiki, err := u.wikiRepo.GetWikiByCode(ctx, code, organizationID, typeParam)
+	if err != nil {
+		return nil, err
+	}
+
+	if wiki == nil {
+		return nil, errors.New("wiki not found")
+	}
+
+	if language != nil {
+		filterTranslations([]*entity.Wiki{wiki}, language)
+	}
+
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
+
 }
 
 func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error) {
