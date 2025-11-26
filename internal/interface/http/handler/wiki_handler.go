@@ -219,3 +219,33 @@ func (h *WikiHandler) GetStatistics(c *fiber.Ctx) error {
 
 	return libs_helper.SendSuccess(c, fiber.StatusOK, "Statistics fetched successfully", statistics)
 }
+
+func (h *WikiHandler) GetTemplate(c *fiber.Ctx) error {
+	organizationID := c.Query("organization_id")
+	if organizationID == "" {
+		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing organizationID")
+		return nil
+	}
+
+	typeParam := c.Query("type")
+	if typeParam == "" {
+		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
+		return nil
+	}
+
+	token, exists := c.Locals("token").(string)
+	if !exists {
+		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		return nil
+	}
+
+	ctx := context.WithValue(c.Context(), libs_constant.Token, token)
+
+	templates, err := h.wikiUseCase.GetTemplate(ctx, organizationID, typeParam)
+	if err != nil {
+		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		return nil
+	}
+
+	return libs_helper.SendSuccess(c, fiber.StatusOK, "Templates fetched successfully", templates)
+}

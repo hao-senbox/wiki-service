@@ -80,3 +80,29 @@ func WikiToResponse(
 
 	return resp
 }
+
+func WikiTemplateToResponse(template *entity.WikiTemplate) *response.WikiTemplateResponse {
+	if template == nil {
+		return nil
+	}
+
+	elements := make([]response.ElementResponse, 0, len(template.Elements))
+	for _, elem := range template.Elements {
+		elements = append(elements, response.ElementResponse{
+			Number:  elem.Number,
+			Type:    elem.Type,
+			Value:   elem.Value,
+			TopicID: elem.TopicID,
+		})
+	}
+
+	return &response.WikiTemplateResponse{
+		ID:             template.ID.Hex(),
+		OrganizationID: template.OrganizationID,
+		Type:           template.Type,
+		Elements:       elements,
+		CreatedBy:      template.CreatedBy,
+		CreatedAt:      template.CreatedAt,
+		UpdatedAt:      template.UpdatedAt,
+	}
+}

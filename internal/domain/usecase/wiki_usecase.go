@@ -22,6 +22,7 @@ type WikiUseCase interface {
 	GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error)
 	UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error
 	GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
+	GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error)
 }
 
 type wikiUseCase struct {
@@ -57,9 +58,24 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 	}
 
 	templateElements := convertElements(req.Elements, false)
-
-	wikis := make([]entity.Wiki, 6000)
 	now := time.Now()
+
+	// Save template first
+	template := &entity.WikiTemplate{
+		OrganizationID: req.OrganizationID,
+		Type:           req.Type,
+		Elements:       templateElements,
+		CreatedBy:      userID,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	if err := u.wikiRepo.CreateTemplate(ctx, template); err != nil {
+		return fmt.Errorf("failed to save template: %w", err)
+	}
+
+	// Create 6000 wiki instances
+	wikis := make([]entity.Wiki, 6000)
 
 	for i := 0; i < 6000; i++ {
 		code := fmt.Sprintf("%04d", i+1)
@@ -449,7 +465,7 @@ func convertElements(reqElements []request.Element, includeValues bool) []entity
 			Number:  elem.Number,
 			Type:    elem.Type,
 			Value:   value,
-			TopicID: elem.TopicID,
+			TopicID: nil,
 		}
 	}
 
@@ -487,6 +503,18 @@ func filterTranslations(wikis []*entity.Wiki, language *int) {
 
 		wiki.Translation = filtered
 	}
+}
+
+func (u *wikiUseCase) GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
+	if organizationID == "" {
+		return nil, errors.New("organizationID is required")
+	}
+
+	if typeParam == "" {
+		return nil, errors.New("type is required")
+	}
+
+	return u.wikiRepo.GetTemplates(ctx, organizationID, typeParam)
 }
 
 func validateElements(elements []request.Element) error {

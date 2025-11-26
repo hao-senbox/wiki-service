@@ -12,4 +12,6 @@ type WikiRepository interface {
 	GetWikis(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*entity.Wiki, int64, error)
 	GetWikiByID(ctx context.Context, id primitive.ObjectID) (*entity.Wiki, error)
 	UpdateWiki(ctx context.Context, id primitive.ObjectID, wiki *entity.Wiki) error
+	CreateTemplate(ctx context.Context, template *entity.WikiTemplate) error
+	GetTemplates(ctx context.Context, organizationID, typeParam string) (*entity.WikiTemplate, error)
 }

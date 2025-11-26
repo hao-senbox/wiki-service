@@ -31,5 +31,15 @@ type Element struct {
 	Number  int     `bson:"number" json:"number"`
 	Type    string  `bson:"type" json:"type"`
 	Value   *string `bson:"value" json:"value"`
-	TopicID *string `bson:"topic_id,omitempty" json:"topic_id,omitempty"`
+	TopicID *string `bson:"topic_id" json:"topic_id"`
+}
+
+type WikiTemplate struct {
+	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	OrganizationID string             `bson:"organization_id" json:"organization_id"`
+	Type           string             `bson:"type" json:"type"`
+	Elements       []Element          `bson:"elements" json:"elements"`
+	CreatedBy      string             `bson:"created_by" json:"created_by"`
+	CreatedAt      time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt      time.Time          `bson:"updated_at" json:"updated_at"`
 }

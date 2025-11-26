@@ -12,12 +12,14 @@ import (
 )
 
 type wikiRepositoryMongo struct {
-	collection *mongo.Collection
+	collection         *mongo.Collection
+	templateCollection *mongo.Collection
 }
 
 func NewWikiRepositoryMongo(db *mongo.Database) repository.WikiRepository {
 	return &wikiRepositoryMongo{
-		collection: db.Collection("wikis"),
+		collection:         db.Collection("wikis"),
+		templateCollection: db.Collection("wiki_templates"),
 	}
 }
 
@@ -46,7 +48,7 @@ func (r *wikiRepositoryMongo) GetWikis(ctx context.Context, organizationID strin
 	}
 
 	if search != "" {
-		searchRegex := bson.M{"$regex": search, "$options": "i"} 
+		searchRegex := bson.M{"$regex": search, "$options": "i"}
 		filter["$or"] = bson.A{
 			bson.M{"code": searchRegex},
 			bson.M{"translation.title": searchRegex},
@@ -108,4 +110,35 @@ func (r *wikiRepositoryMongo) UpdateWiki(ctx context.Context, id primitive.Objec
 
 	_, err := r.collection.UpdateOne(ctx, filter, bson.M{"$set": wiki})
 	return err
+}
+
+func (r *wikiRepositoryMongo) CreateTemplate(ctx context.Context, template *entity.WikiTemplate) error {
+	filter := bson.M{
+		"organization_id": template.OrganizationID,
+		"type":            template.Type,
+	}
+	if _, err := r.templateCollection.DeleteOne(ctx, filter); err != nil {
+		return err
+	}
+
+	_, err := r.templateCollection.InsertOne(ctx, template)
+	return err
+}
+
+func (r *wikiRepositoryMongo) GetTemplates(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
+	filter := bson.M{
+		"organization_id": organizationID,
+		"type":            typeParam,
+	}
+
+	var template entity.WikiTemplate
+	err := r.templateCollection.FindOne(ctx, filter).Decode(&template)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &template, nil
 }
