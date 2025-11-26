@@ -9,6 +9,7 @@ import (
 type Wiki struct {
 	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	OrganizationID string             `bson:"organization_id" json:"organization_id"`
+	Type           string             `bson:"type" json:"type"`
 	Code           string             `bson:"code" json:"code"`
 	Translation    []Translation      `bson:"translation" json:"translation"`
 	Icon           string             `bson:"icon" json:"icon"`

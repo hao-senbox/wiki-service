@@ -21,8 +21,12 @@ func NewWikiRepositoryMongo(db *mongo.Database) repository.WikiRepository {
 	}
 }
 
-func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wiki) error {
-	if _, err := r.collection.DeleteMany(ctx, bson.M{}); err != nil {
+func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wiki, typeParam string, organizationID string) error {
+	filter := bson.M{
+		"organization_id": organizationID,
+		"type":            typeParam,
+	}
+	if _, err := r.collection.DeleteMany(ctx, filter); err != nil {
 		return err
 	}
 
@@ -35,9 +39,18 @@ func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wik
 	return err
 }
 
-func (r *wikiRepositoryMongo) GetWikis(ctx context.Context, organizationID string, page, limit int) ([]*entity.Wiki, int64, error) {
+func (r *wikiRepositoryMongo) GetWikis(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*entity.Wiki, int64, error) {
 	filter := bson.M{
 		"organization_id": organizationID,
+		"type":            typeParam,
+	}
+
+	if search != "" {
+		searchRegex := bson.M{"$regex": search, "$options": "i"} 
+		filter["$or"] = bson.A{
+			bson.M{"code": searchRegex},
+			bson.M{"translation.title": searchRegex},
+		}
 	}
 
 	total, err := r.collection.CountDocuments(ctx, filter)

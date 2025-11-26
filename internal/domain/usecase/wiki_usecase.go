@@ -18,9 +18,10 @@ import (
 
 type WikiUseCase interface {
 	CreateWikiTemplate(ctx context.Context, req request.CreateWikiTemplateRequest, userID string) error
-	GetWikis(ctx context.Context, organizationID string, page, limit int, language *int) ([]*entity.Wiki, int64, error)
+	GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error)
 	GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error)
 	UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error
+	GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
 }
 
 type wikiUseCase struct {
@@ -64,6 +65,7 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 		code := fmt.Sprintf("%04d", i+1)
 		wikis[i] = entity.Wiki{
 			OrganizationID: req.OrganizationID,
+			Type:           req.Type,
 			Code:           code,
 			Translation: []entity.Translation{
 				{
@@ -82,12 +84,16 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 		}
 	}
 
-	return u.wikiRepo.CreateMany(ctx, wikis)
+	return u.wikiRepo.CreateMany(ctx, wikis, req.Type, req.OrganizationID)
 }
 
-func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page, limit int, language *int) ([]*entity.Wiki, int64, error) {
+func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error) {
 	if organizationID == "" {
 		return nil, 0, errors.New("organizationID is required")
+	}
+
+	if typeParam == "" {
+		return nil, 0, errors.New("type is required")
 	}
 
 	if page < 1 {
@@ -98,7 +104,7 @@ func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page,
 		return nil, 0, errors.New("limit must be greater than 0")
 	}
 
-	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit)
+	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit, typeParam, search)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -130,6 +136,130 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 	}
 
 	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
+}
+
+func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error) {
+	if organizationID == "" {
+		return nil, errors.New("organizationID is required")
+	}
+
+	if page < 1 {
+		return nil, errors.New("page must be greater than 0")
+	}
+
+	if limit < 1 {
+		return nil, errors.New("limit must be greater than 0")
+	}
+
+	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit, typeParam, search)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(wikis) == 0 {
+		return []*response.WikiStatisticsResponse{}, nil
+	}
+
+	var responses []*response.WikiStatisticsResponse
+
+	for _, wiki := range wikis {
+		if wiki == nil {
+			continue
+		}
+
+		// Maps to track statistics for this wiki
+		elementStats := make(map[string]string) // elementKey -> overall status
+		languageStats := make(map[string]bool)  // language -> has any value
+
+		// Process translations for this wiki
+		for _, translation := range wiki.Translation {
+			langStr := "unknown"
+			if translation.Language != nil {
+				langStr = fmt.Sprintf("%d", *translation.Language)
+				languageStats[langStr] = false // Initialize as false, will be set to true if any element has value
+			}
+
+			for _, element := range translation.Elements {
+				elementKey := fmt.Sprintf("%d_%s", element.Number, element.Type)
+
+				// Check if element has value
+				hasValue := element.Value != nil && strings.TrimSpace(*element.Value) != ""
+
+				if hasValue {
+					elementStats[elementKey] = "yes"
+					if langStr != "unknown" {
+						languageStats[langStr] = true
+					}
+				} else {
+					// Only set to "no" if not already set to "yes"
+					if elementStats[elementKey] != "yes" {
+						elementStats[elementKey] = "no"
+					}
+				}
+			}
+		}
+
+		// Convert language stats to string map
+		langStatus := make(map[string]string)
+		for lang, hasValue := range languageStats {
+			if hasValue {
+				langStatus[lang] = "yes"
+			} else {
+				langStatus[lang] = "no"
+			}
+		}
+
+		// Convert element stats to response structure
+		var elements []response.ElementStatistics
+		for elementKey, status := range elementStats {
+			// Parse element key
+			parts := strings.Split(elementKey, "_")
+			if len(parts) != 2 {
+				continue
+			}
+
+			number := 0
+			fmt.Sscanf(parts[0], "%d", &number)
+
+			element := response.ElementStatistics{
+				Number: number,
+				Type:   parts[1],
+				Check:  status,
+			}
+			elements = append(elements, element)
+		}
+
+		// Sort elements by number for consistent output
+		for i := 0; i < len(elements)-1; i++ {
+			for j := i + 1; j < len(elements); j++ {
+				if elements[i].Number > elements[j].Number {
+					elements[i], elements[j] = elements[j], elements[i]
+				}
+			}
+		}
+
+		// Create response for this wiki
+		response := &response.WikiStatisticsResponse{
+			Languages: langStatus,
+			Code:      wiki.Code,
+			Elements:  elements,
+		}
+
+		responses = append(responses, response)
+	}
+
+	// Add pagination info to the first response (or create a wrapper response)
+	if len(responses) > 0 {
+		totalPages := int((total + int64(limit) - 1) / int64(limit))
+		responses[0].Pagination = &response.PaginationResponse{
+			Page:       page,
+			Limit:      limit,
+			Total:      int(total),
+			TotalPages: totalPages,
+		}
+	}
+
+	return responses, nil
 }
 
 func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error {

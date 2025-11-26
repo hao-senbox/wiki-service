@@ -8,8 +8,8 @@ import (
 )
 
 type WikiRepository interface {
-	CreateMany(ctx context.Context, wikis []entity.Wiki) error
-	GetWikis(ctx context.Context, organizationID string, page, limit int) ([]*entity.Wiki, int64, error)
+	CreateMany(ctx context.Context, wikis []entity.Wiki, typeParam string, organizationID string) error
+	GetWikis(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*entity.Wiki, int64, error)
 	GetWikiByID(ctx context.Context, id primitive.ObjectID) (*entity.Wiki, error)
 	UpdateWiki(ctx context.Context, id primitive.ObjectID, wiki *entity.Wiki) error
 }

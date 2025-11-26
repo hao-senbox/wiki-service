@@ -82,6 +82,14 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 		language = &lang
 	}
 
+	typeParam := c.Query("type")
+	if typeParam == "" {
+		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
+		return nil
+	}
+
+	searchParam := c.Query("search")
+
 	token, exists := c.Locals("token").(string)
 	if !exists {
 		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
@@ -90,7 +98,7 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 
 	ctx := context.WithValue(c.Context(), libs_constant.Token, token)
 
-	wikis, total, err := h.wikiUseCase.GetWikis(ctx, organizationID, page, limit, language)
+	wikis, total, err := h.wikiUseCase.GetWikis(ctx, organizationID, page, limit, language, typeParam, searchParam)
 	if err != nil {
 		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
@@ -169,4 +177,45 @@ func (h *WikiHandler) UpdateWiki(c *fiber.Ctx) error {
 	}
 
 	return libs_helper.SendSuccess(c, fiber.StatusOK, "Wiki updated successfully", nil)
+}
+
+func (h *WikiHandler) GetStatistics(c *fiber.Ctx) error {
+	organizationID := c.Query("organization_id")
+	if organizationID == "" {
+		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing organizationID")
+		return nil
+	}
+
+	pageParam := c.Query("page", "1")
+	page, err := strconv.Atoi(pageParam)
+	if err != nil || page < 1 {
+		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid page parameter")
+		return nil
+	}
+
+	limitParam := c.Query("limit", "20")
+	limit, err := strconv.Atoi(limitParam)
+	if err != nil || limit < 1 {
+		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid limit parameter")
+		return nil
+	}
+
+	typeParam := c.Query("type", "") 
+	searchParam := c.Query("search")
+
+	token, exists := c.Locals("token").(string)
+	if !exists {
+		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		return nil
+	}
+
+	ctx := context.WithValue(c.Context(), libs_constant.Token, token)
+
+	statistics, err := h.wikiUseCase.GetStatistics(ctx, organizationID, page, limit, typeParam, searchParam)
+	if err != nil {
+		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		return nil
+	}
+
+	return libs_helper.SendSuccess(c, fiber.StatusOK, "Statistics fetched successfully", statistics)
 }
