@@ -46,8 +46,9 @@ func WikiToResponse(
 		elements := make([]response.ElementResponse, 0, len(tran.Elements))
 		for _, elem := range tran.Elements {
 			value := elem.Value
+			// topicID := elem.TopicID
 			if value != nil &&
-				strings.EqualFold(elem.Type, "image") &&
+				strings.EqualFold(elem.Type, "picture") &&
 				fileGateway != nil &&
 				*value != "" {
 				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
@@ -60,7 +61,59 @@ func WikiToResponse(
 			}
 
 			if value != nil &&
-				strings.EqualFold(elem.Type, "file") &&
+				strings.EqualFold(elem.Type, "large_picture") &&
+				fileGateway != nil &&
+				*value != "" {
+				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+					Key:  *value,
+					Mode: string(libs_constant.ImageModePublic),
+				})
+				if err == nil && url != nil {
+					value = url
+				}
+			}
+
+			if value != nil &&
+				strings.EqualFold(elem.Type, "banner") &&
+				fileGateway != nil &&
+				*value != "" {
+				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+					Key:  *value,
+					Mode: string(libs_constant.ImageModePublic),
+				})
+				if err == nil && url != nil {
+					value = url
+				}
+			}
+
+			if value != nil &&
+				strings.EqualFold(elem.Type, "linked_in") &&
+				fileGateway != nil &&
+				*value != "" {
+				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+					Key:  *value,
+					Mode: string(libs_constant.ImageModePublic),
+				})
+				if err == nil && url != nil {
+					value = url
+				}
+			}
+
+			if value != nil &&
+				strings.EqualFold(elem.Type, "graphic") &&
+				fileGateway != nil &&
+				*value != "" {
+				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+					Key:  *value,
+					Mode: string(libs_constant.ImageModePublic),
+				})
+				if err == nil && url != nil {
+					value = url
+				}
+			}
+
+			if value != nil &&
+				strings.EqualFold(elem.Type, "document") &&
 				fileGateway != nil &&
 				*value != "" {
 				url, err := fileGateway.GetPDFUrl(ctx, file_gateway_dto.GetFileUrlRequest{
@@ -72,11 +125,43 @@ func WikiToResponse(
 				}
 			}
 
+			// if topicID != nil &&
+			// 	strings.EqualFold(elem.Type, "video") &&
+			// 	fileGateway != nil &&
+			// 	*topicID != "" {
+			// 	url, err := fileGateway.GetVideoUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+			// 		Key:  *topicID,
+			// 		Mode: string(libs_constant.ImageModePublic),
+			// 	})
+			// }
+
+			// Handle picture keys for picture type
+			var pictureKeys []string
+			if strings.EqualFold(elem.Type, "picture") && len(elem.PictureKeys) > 0 {
+				pictureKeys = make([]string, len(elem.PictureKeys))
+				for i, key := range elem.PictureKeys {
+					if key != "" && fileGateway != nil {
+						url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+							Key:  key,
+							Mode: string(libs_constant.ImageModePublic),
+						})
+						if err == nil && url != nil {
+							pictureKeys[i] = *url
+						} else {
+							pictureKeys[i] = key // fallback to original key if URL generation fails
+						}
+					} else {
+						pictureKeys[i] = key
+					}
+				}
+			}
+
 			elements = append(elements, response.ElementResponse{
-				Number:  elem.Number,
-				Type:    elem.Type,
-				Value:   value,
-				TopicID: elem.TopicID,
+				Number:      elem.Number,
+				Type:        elem.Type,
+				Value:       value,
+				PictureKeys: pictureKeys,
+				TopicID:     elem.TopicID,
 			})
 		}
 

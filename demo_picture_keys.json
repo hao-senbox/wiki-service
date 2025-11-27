@@ -1,0 +1,112 @@
+{
+  "create_template_with_pictures": {
+    "method": "POST",
+    "url": "http://localhost:8023/api/v1/wikis/template",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer YOUR_TOKEN_HERE"
+    },
+    "body": {
+      "type": "lesson",
+      "elements": [
+        {
+          "number": 1,
+          "type": "text",
+          "value": "This is a text element"
+        },
+        {
+          "number": 2,
+          "type": "picture",
+          "picture_keys": [
+            "image1_key.jpg",
+            "image2_key.png",
+            "image3_key.jpeg"
+          ]
+        },
+        {
+          "number": 3,
+          "type": "image",
+          "value": "single_image_key.jpg"
+        }
+      ]
+    }
+  },
+  "update_wiki_with_pictures": {
+    "method": "PUT",
+    "url": "http://localhost:8023/api/v1/wikis/WIKI_ID_HERE",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer YOUR_TOKEN_HERE"
+    },
+    "body": {
+      "language": 1,
+      "title": "Updated Title",
+      "elements": [
+        {
+          "number": 1,
+          "type": "text",
+          "value": "Updated text content"
+        },
+        {
+          "number": 2,
+          "type": "picture",
+          "picture_keys": [
+            "new_image1.jpg",
+            "new_image2.png"
+          ]
+        }
+      ]
+    }
+  },
+  "expected_response_format": {
+    "data": {
+      "id": "wiki_id",
+      "code": "MATH001",
+      "public": 1,
+      "translation": [
+        {
+          "language": 1,
+          "title": "Mathematics",
+          "elements": [
+            {
+              "number": 1,
+              "type": "text",
+              "value": "This is a text element"
+            },
+            {
+              "number": 2,
+              "type": "picture",
+              "picture_keys": [
+                "https://cdn.example.com/image1_key.jpg",
+                "https://cdn.example.com/image2_key.png",
+                "https://cdn.example.com/image3_key.jpeg"
+              ]
+            },
+            {
+              "number": 3,
+              "type": "image",
+              "value": "https://cdn.example.com/single_image_key.jpg"
+            }
+          ]
+        }
+      ],
+      "icon": "math_icon.png",
+      "created_by_user": {
+        "id": "user-123",
+        "username": "johndoe",
+        "fullname": "John Doe",
+        "email": "john@example.com",
+        "avatar": "https://example.com/avatar.jpg"
+      },
+      "created_at": "2024-01-01T00:00:00Z",
+      "updated_at": "2024-01-01T00:00:00Z"
+    }
+  },
+  "notes": {
+    "picture_type": "Uses 'picture_keys' array instead of single 'value'",
+    "url_generation": "Picture keys are automatically converted to full URLs",
+    "backward_compatibility": "First picture key is set as main 'value' for compatibility",
+    "update_logic": "When updating pictures, old pictures are deleted and new ones replace",
+    "deletion": "When removing picture elements, all pictures in the array are deleted"
+  }
+}

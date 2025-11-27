@@ -11,3 +11,11 @@ type UpdateWikiRequest struct {
 	Unit      *string   `json:"unit"`
 	Elements  []Element `json:"elements"`
 }
+
+type Element struct {
+	Number      int      `json:"number"`
+	Type        string   `json:"type"`
+	Value       *string  `json:"value,omitempty"`
+	PictureKeys []string `json:"picture_keys,omitempty"`
+	TopicID     *string  `json:"topic_id,omitempty"`
+}

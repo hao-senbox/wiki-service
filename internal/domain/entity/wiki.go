@@ -28,10 +28,11 @@ type Translation struct {
 }
 
 type Element struct {
-	Number  int     `bson:"number" json:"number"`
-	Type    string  `bson:"type" json:"type"`
-	Value   *string `bson:"value" json:"value"`
-	TopicID *string `bson:"topic_id" json:"topic_id"`
+	Number      int      `bson:"number" json:"number"`
+	Type        string   `bson:"type" json:"type"`
+	Value       *string  `bson:"value" json:"value"`
+	PictureKeys []string `bson:"picture_keys,omitempty" json:"picture_keys,omitempty"`
+	TopicID     *string  `bson:"topic_id" json:"topic_id"`
 }
 
 type WikiTemplate struct {
