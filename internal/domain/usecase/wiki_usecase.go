@@ -570,6 +570,9 @@ func filterTranslations(wikis []*entity.Wiki, language *int) {
 
 		filtered := make([]entity.Translation, 0, 1)
 		for _, translation := range wiki.Translation {
+			if translation.Language == nil {
+				continue
+			}
 			if *translation.Language == *language {
 				filtered = append(filtered, translation)
 				break
