@@ -32,9 +32,23 @@ type TranslationResponse struct {
 }
 
 type ElementResponse struct {
-	Number      int      `json:"number"`
-	Type        string   `json:"type"`
-	Value       *string  `json:"value,omitempty"`
-	PictureKeys []string `json:"picture_keys,omitempty"`
-	TopicID     *string  `json:"topic_id,omitempty"`
+	Number      int               `json:"number"`
+	Type        string            `json:"type"`
+	Value       *string           `json:"value,omitempty"`
+	PictureKeys []string          `json:"picture_keys,omitempty"`
+	ButtonUrl   ButtonUrlResponse `json:"button_url,omitempty"`
+	Button      ButtonResponse    `json:"button,omitempty"`
+	TopicID     *string           `json:"topic_id,omitempty"`
+}
+
+type ButtonUrlResponse struct {
+	Title      string `json:"title"`
+	Url        string `json:"url"`
+	ButtonIcon string `json:"button_icon"`
+}
+
+
+type ButtonResponse struct {
+	Title      string `json:"title"`
+	ButtonIcon string `json:"button_icon"`
 }

@@ -125,6 +125,16 @@ func WikiToResponse(
 				}
 			}
 
+			// if value != nil &&
+			// 	strings.EqualFold(elem.Type, "button_url") &&
+			// 	fileGateway != nil &&
+			// 	*value != "" {
+			// 	url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+			// 		Key:  *value,
+			// 		Mode: string(libs_constant.ImageModePublic),
+			// 	})
+			// }
+
 			// if topicID != nil &&
 			// 	strings.EqualFold(elem.Type, "video") &&
 			// 	fileGateway != nil &&
