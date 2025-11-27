@@ -14,18 +14,19 @@ func WikiToResponse(
 	ctx context.Context,
 	wiki *entity.Wiki,
 	fileGateway gateway.FileGateway,
+	createdByUser *response.CreatedByUserInfo,
 ) *response.WikiResponse {
 	if wiki == nil {
 		return nil
 	}
 
 	resp := &response.WikiResponse{
-		ID:             wiki.ID.Hex(),
-		Code:           wiki.Code,
-		Icon:           wiki.Icon,
-		CreatedBy:      wiki.CreatedBy,
-		CreatedAt:      wiki.CreatedAt,
-		UpdatedAt:      wiki.UpdatedAt,
+		ID:            wiki.ID.Hex(),
+		Code:          wiki.Code,
+		Icon:          wiki.Icon,
+		CreatedByUser: createdByUser,
+		CreatedAt:     wiki.CreatedAt,
+		UpdatedAt:     wiki.UpdatedAt,
 	}
 
 	resp.Translation = make([]response.TranslationResponse, 0, len(wiki.Translation))
@@ -96,11 +97,11 @@ func WikiTemplateToResponse(template *entity.WikiTemplate) *response.WikiTemplat
 	}
 
 	return &response.WikiTemplateResponse{
-		ID:             template.ID.Hex(),
-		Type:           template.Type,
-		Elements:       elements,
-		CreatedBy:      template.CreatedBy,
-		CreatedAt:      template.CreatedAt,
-		UpdatedAt:      template.UpdatedAt,
+		ID:        template.ID.Hex(),
+		Type:      template.Type,
+		Elements:  elements,
+		CreatedBy: template.CreatedBy,
+		CreatedAt: template.CreatedAt,
+		UpdatedAt: template.UpdatedAt,
 	}
 }

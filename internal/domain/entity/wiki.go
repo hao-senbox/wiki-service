@@ -7,14 +7,15 @@ import (
 )
 
 type Wiki struct {
-	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Type           string             `bson:"type" json:"type"`
-	Code           string             `bson:"code" json:"code"`
-	Translation    []Translation      `bson:"translation" json:"translation"`
-	Icon           string             `bson:"icon" json:"icon"`
-	CreatedBy      string             `bson:"created_by" json:"created_by"`
-	CreatedAt      time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt      time.Time          `bson:"updated_at" json:"updated_at"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Type        string             `bson:"type" json:"type"`
+	Code        string             `bson:"code" json:"code"`
+	Public      int                `bson:"public" json:"public"`
+	Translation []Translation      `bson:"translation" json:"translation"`
+	Icon        string             `bson:"icon" json:"icon"`
+	CreatedBy   string             `bson:"created_by" json:"created_by"`
+	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
 }
 
 type Translation struct {
@@ -34,10 +35,10 @@ type Element struct {
 }
 
 type WikiTemplate struct {
-	ID             primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Type           string             `bson:"type" json:"type"`
-	Elements       []Element          `bson:"elements" json:"elements"`
-	CreatedBy      string             `bson:"created_by" json:"created_by"`
-	CreatedAt      time.Time          `bson:"created_at" json:"created_at"`
-	UpdatedAt      time.Time          `bson:"updated_at" json:"updated_at"`
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Type      string             `bson:"type" json:"type"`
+	Elements  []Element          `bson:"elements" json:"elements"`
+	CreatedBy string             `bson:"created_by" json:"created_by"`
+	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
+	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }

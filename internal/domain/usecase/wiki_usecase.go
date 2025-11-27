@@ -21,7 +21,7 @@ type WikiUseCase interface {
 	GetTemplate(ctx context.Context, typeParam string) (*entity.WikiTemplate, error)
 	GetStatistics(ctx context.Context, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
 	GetWikiByCode(ctx context.Context, code string, language *int, typeParam string) (*response.WikiResponse, error)
-	GetWikis(ctx context.Context, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error)
+	GetWikis(ctx context.Context, page, limit int, language *int, typeParam, search string) ([]*response.WikiResponse, int64, error)
 	GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error)
 	UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error
 }
@@ -29,15 +29,18 @@ type WikiUseCase interface {
 type wikiUseCase struct {
 	wikiRepo    repository.WikiRepository
 	fileGateway gateway.FileGateway
+	userGateway gateway.UserGateway
 }
 
 func NewWikiUseCase(
 	wikiRepo repository.WikiRepository,
 	fileGateway gateway.FileGateway,
+	userGateway gateway.UserGateway,
 ) WikiUseCase {
 	return &wikiUseCase{
 		wikiRepo:    wikiRepo,
 		fileGateway: fileGateway,
+		userGateway: userGateway,
 	}
 }
 
@@ -78,6 +81,7 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 		wikis[i] = entity.Wiki{
 			Type: req.Type,
 			Code: code,
+			Public: 1,
 			Translation: []entity.Translation{
 				{
 					Language: nil,
@@ -254,11 +258,24 @@ func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *
 		filterTranslations([]*entity.Wiki{wiki}, language)
 	}
 
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
+	// Get user info for created_by
+	var createdByUser *response.CreatedByUserInfo
+	if user, err := u.userGateway.GetCurrentUser(ctx); err == nil && user != nil {
+		createdByUser = &response.CreatedByUserInfo{
+			ID:       user.ID,
+			Username: user.Username,
+			Nickname: user.Nickname,
+			Fullname: user.Fullname,
+			Email:    user.Email,
+			Avatar:   user.AvatarURL,
+		}
+	}
+
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, createdByUser), nil
 
 }
 
-func (u *wikiUseCase) GetWikis(ctx context.Context, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error) {
+func (u *wikiUseCase) GetWikis(ctx context.Context, page, limit int, language *int, typeParam, search string) ([]*response.WikiResponse, int64, error) {
 	if typeParam == "" {
 		return nil, 0, errors.New("type is required")
 	}
@@ -280,7 +297,26 @@ func (u *wikiUseCase) GetWikis(ctx context.Context, page, limit int, language *i
 		filterTranslations(wikis, language)
 	}
 
-	return wikis, total, nil
+	// Get current user info once for all wikis
+	var currentUser *response.CreatedByUserInfo
+	if user, err := u.userGateway.GetCurrentUser(ctx); err == nil && user != nil {
+		currentUser = &response.CreatedByUserInfo{
+			ID:       user.ID,
+			Username: user.Username,
+			Nickname: user.Nickname,
+			Fullname: user.Fullname,
+			Email:    user.Email,
+			Avatar:   user.AvatarURL,
+		}
+	}
+
+	// Convert wikis to responses
+	responses := make([]*response.WikiResponse, len(wikis))
+	for i, wiki := range wikis {
+		responses[i] = mapper.WikiToResponse(ctx, wiki, u.fileGateway, currentUser)
+	}
+
+	return responses, total, nil
 }
 
 func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error) {
@@ -306,7 +342,20 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		filterTranslations([]*entity.Wiki{wiki}, language)
 	}
 
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway), nil
+	// Get user info for created_by
+	var createdByUser *response.CreatedByUserInfo
+	if user, err := u.userGateway.GetCurrentUser(ctx); err == nil && user != nil {
+		createdByUser = &response.CreatedByUserInfo{
+			ID:       user.ID,
+			Username: user.Username,
+			Nickname: user.Nickname,
+			Fullname: user.Fullname,
+			Email:    user.Email,
+			Avatar:   user.AvatarURL,
+		}
+	}
+
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, createdByUser), nil
 }
 
 func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error {
@@ -330,6 +379,10 @@ func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.Upd
 
 	if req.Icon != nil {
 		wiki.Icon = *req.Icon
+	}
+
+	if req.Public != nil {
+		wiki.Public = *req.Public
 	}
 
 	if req.Language != nil && *req.Language < 0 {

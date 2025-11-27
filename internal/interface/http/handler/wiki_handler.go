@@ -191,14 +191,14 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 
 	ctx := context.WithValue(c.Context(), libs_constant.Token, token)
 
-	wikis, total, err := h.wikiUseCase.GetWikis(ctx, page, limit, language, typeParam, searchParam)
+	wikiResponses, total, err := h.wikiUseCase.GetWikis(ctx, page, limit, language, typeParam, searchParam)
 	if err != nil {
 		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
 	response := fiber.Map{
-		"items":       wikis,
+		"items":       wikiResponses,
 		"page":        page,
 		"limit":       limit,
 		"total":       total,

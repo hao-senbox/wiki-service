@@ -3,14 +3,23 @@ package response
 import "time"
 
 type WikiResponse struct {
-	ID             string                `json:"id"`
-	OrganizationID string                `json:"organization_id"`
-	Code           string                `json:"code"`
-	Translation    []TranslationResponse `json:"translation"`
-	Icon           string                `json:"icon"`
-	CreatedBy      string                `json:"created_by"`
-	CreatedAt      time.Time             `json:"created_at"`
-	UpdatedAt      time.Time             `json:"updated_at"`
+	ID            string                `json:"id"`
+	Code          string                `json:"code"`
+	Public        int                   `json:"public"`
+	Translation   []TranslationResponse `json:"translation"`
+	Icon          string                `json:"icon"`
+	CreatedByUser *CreatedByUserInfo    `json:"created_by_user,omitempty"`
+	CreatedAt     time.Time             `json:"created_at"`
+	UpdatedAt     time.Time             `json:"updated_at"`
+}
+
+type CreatedByUserInfo struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Nickname string `json:"nickname"`
+	Fullname string `json:"fullname"`
+	Email    string `json:"email"`
+	Avatar   string `json:"avatar"`
 }
 
 type TranslationResponse struct {

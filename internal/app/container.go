@@ -122,7 +122,7 @@ func (c *Container) initRepositories() {
 
 // initUseCases initializes all use cases
 func (c *Container) initUseCases() {
-	c.WikiUseCase = usecase.NewWikiUseCase(c.WikiRepository, c.FileGateway)
+	c.WikiUseCase = usecase.NewWikiUseCase(c.WikiRepository, c.FileGateway, c.UserGateway)
 }
 
 // initHandlers initializes all HTTP handlers
