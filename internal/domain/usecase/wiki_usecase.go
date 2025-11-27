@@ -18,10 +18,10 @@ import (
 
 type WikiUseCase interface {
 	CreateWikiTemplate(ctx context.Context, req request.CreateWikiTemplateRequest, userID string) error
-	GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error)
-	GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
-	GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error)
-	GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error)
+	GetTemplate(ctx context.Context, typeParam string) (*entity.WikiTemplate, error)
+	GetStatistics(ctx context.Context, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error)
+	GetWikiByCode(ctx context.Context, code string, language *int, typeParam string) (*response.WikiResponse, error)
+	GetWikis(ctx context.Context, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error)
 	GetWikiByID(ctx context.Context, id string, language *int) (*response.WikiResponse, error)
 	UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error
 }
@@ -46,10 +46,6 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 		return errors.New("userID is required")
 	}
 
-	if req.OrganizationID == "" {
-		return errors.New("organizationID is required")
-	}
-
 	if len(req.Elements) == 0 {
 		return errors.New("elements is required")
 	}
@@ -63,12 +59,11 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 
 	// Save template first
 	template := &entity.WikiTemplate{
-		OrganizationID: req.OrganizationID,
-		Type:           req.Type,
-		Elements:       templateElements,
-		CreatedBy:      userID,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		Type:      req.Type,
+		Elements:  templateElements,
+		CreatedBy: userID,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	if err := u.wikiRepo.CreateTemplate(ctx, template); err != nil {
@@ -81,9 +76,8 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 	for i := 0; i < 6000; i++ {
 		code := fmt.Sprintf("%04d", i+1)
 		wikis[i] = entity.Wiki{
-			OrganizationID: req.OrganizationID,
-			Type:           req.Type,
-			Code:           code,
+			Type: req.Type,
+			Code: code,
 			Translation: []entity.Translation{
 				{
 					Language: nil,
@@ -101,26 +95,24 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 		}
 	}
 
-	return u.wikiRepo.CreateMany(ctx, wikis, req.Type, req.OrganizationID)
-}
-
-func (u *wikiUseCase) GetTemplate(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
-	if organizationID == "" {
-		return nil, errors.New("organizationID is required")
+	err := u.wikiRepo.CreateMany(ctx, wikis, req.Type)
+	if err != nil {
+		fmt.Println("InsertMany error:", err)
+		return err
 	}
 
+	return nil
+}
+
+func (u *wikiUseCase) GetTemplate(ctx context.Context, typeParam string) (*entity.WikiTemplate, error) {
 	if typeParam == "" {
 		return nil, errors.New("type is required")
 	}
 
-	return u.wikiRepo.GetTemplates(ctx, organizationID, typeParam)
+	return u.wikiRepo.GetTemplates(ctx, typeParam)
 }
 
-func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error) {
-	if organizationID == "" {
-		return nil, errors.New("organizationID is required")
-	}
-
+func (u *wikiUseCase) GetStatistics(ctx context.Context, page, limit int, typeParam, search string) ([]*response.WikiStatisticsResponse, error) {
 	if page < 1 {
 		return nil, errors.New("page must be greater than 0")
 	}
@@ -129,7 +121,7 @@ func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, 
 		return nil, errors.New("limit must be greater than 0")
 	}
 
-	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit, typeParam, search)
+	wikis, total, err := u.wikiRepo.GetWikis(ctx, page, limit, typeParam, search)
 	if err != nil {
 		return nil, err
 	}
@@ -240,20 +232,16 @@ func (u *wikiUseCase) GetStatistics(ctx context.Context, organizationID string, 
 	return responses, nil
 }
 
-func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *int, organizationID string, typeParam string) (*response.WikiResponse, error) {
+func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *int, typeParam string) (*response.WikiResponse, error) {
 	if code == "" {
 		return nil, errors.New("code is required")
-	}
-
-	if organizationID == "" {
-		return nil, errors.New("organizationID is required")
 	}
 
 	if typeParam == "" {
 		return nil, errors.New("type is required")
 	}
 
-	wiki, err := u.wikiRepo.GetWikiByCode(ctx, code, organizationID, typeParam)
+	wiki, err := u.wikiRepo.GetWikiByCode(ctx, code, typeParam)
 	if err != nil {
 		return nil, err
 	}
@@ -270,11 +258,7 @@ func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *
 
 }
 
-func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error) {
-	if organizationID == "" {
-		return nil, 0, errors.New("organizationID is required")
-	}
-
+func (u *wikiUseCase) GetWikis(ctx context.Context, page, limit int, language *int, typeParam, search string) ([]*entity.Wiki, int64, error) {
 	if typeParam == "" {
 		return nil, 0, errors.New("type is required")
 	}
@@ -287,7 +271,7 @@ func (u *wikiUseCase) GetWikis(ctx context.Context, organizationID string, page,
 		return nil, 0, errors.New("limit must be greater than 0")
 	}
 
-	wikis, total, err := u.wikiRepo.GetWikis(ctx, organizationID, page, limit, typeParam, search)
+	wikis, total, err := u.wikiRepo.GetWikis(ctx, page, limit, typeParam, search)
 	if err != nil {
 		return nil, 0, err
 	}

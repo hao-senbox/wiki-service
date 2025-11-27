@@ -21,7 +21,6 @@ func WikiToResponse(
 
 	resp := &response.WikiResponse{
 		ID:             wiki.ID.Hex(),
-		OrganizationID: wiki.OrganizationID,
 		Code:           wiki.Code,
 		Icon:           wiki.Icon,
 		CreatedBy:      wiki.CreatedBy,
@@ -98,7 +97,6 @@ func WikiTemplateToResponse(template *entity.WikiTemplate) *response.WikiTemplat
 
 	return &response.WikiTemplateResponse{
 		ID:             template.ID.Hex(),
-		OrganizationID: template.OrganizationID,
 		Type:           template.Type,
 		Elements:       elements,
 		CreatedBy:      template.CreatedBy,

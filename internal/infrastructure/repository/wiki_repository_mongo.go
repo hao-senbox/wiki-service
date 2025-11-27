@@ -25,8 +25,7 @@ func NewWikiRepositoryMongo(db *mongo.Database) repository.WikiRepository {
 
 func (r *wikiRepositoryMongo) CreateTemplate(ctx context.Context, template *entity.WikiTemplate) error {
 	filter := bson.M{
-		"organization_id": template.OrganizationID,
-		"type":            template.Type,
+		"type": template.Type,
 	}
 	if _, err := r.templateCollection.DeleteOne(ctx, filter); err != nil {
 		return err
@@ -36,10 +35,9 @@ func (r *wikiRepositoryMongo) CreateTemplate(ctx context.Context, template *enti
 	return err
 }
 
-func (r *wikiRepositoryMongo) GetTemplates(ctx context.Context, organizationID string, typeParam string) (*entity.WikiTemplate, error) {
+func (r *wikiRepositoryMongo) GetTemplates(ctx context.Context, typeParam string) (*entity.WikiTemplate, error) {
 	filter := bson.M{
-		"organization_id": organizationID,
-		"type":            typeParam,
+		"type": typeParam,
 	}
 
 	var template entity.WikiTemplate
@@ -54,10 +52,9 @@ func (r *wikiRepositoryMongo) GetTemplates(ctx context.Context, organizationID s
 	return &template, nil
 }
 
-func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wiki, typeParam string, organizationID string) error {
+func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wiki, typeParam string) error {
 	filter := bson.M{
-		"organization_id": organizationID,
-		"type":            typeParam,
+		"type": typeParam,
 	}
 	if _, err := r.collection.DeleteMany(ctx, filter); err != nil {
 		return err
@@ -72,10 +69,9 @@ func (r *wikiRepositoryMongo) CreateMany(ctx context.Context, wikis []entity.Wik
 	return err
 }
 
-func (r *wikiRepositoryMongo) GetWikis(ctx context.Context, organizationID string, page, limit int, typeParam, search string) ([]*entity.Wiki, int64, error) {
+func (r *wikiRepositoryMongo) GetWikis(ctx context.Context, page, limit int, typeParam, search string) ([]*entity.Wiki, int64, error) {
 	filter := bson.M{
-		"organization_id": organizationID,
-		"type":            typeParam,
+		"type": typeParam,
 	}
 
 	if search != "" {
@@ -134,11 +130,10 @@ func (r *wikiRepositoryMongo) GetWikiByID(ctx context.Context, id primitive.Obje
 	return &wiki, nil
 }
 
-func (r *wikiRepositoryMongo) GetWikiByCode(ctx context.Context, code string, organizationID string, typeParam string) (*entity.Wiki, error) {
+func (r *wikiRepositoryMongo) GetWikiByCode(ctx context.Context, code string, typeParam string) (*entity.Wiki, error) {
 	filter := bson.M{
-		"code":            code,
-		"organization_id": organizationID,
-		"type":            typeParam,
+		"code": code,
+		"type": typeParam,
 	}
 
 	var wiki entity.Wiki
@@ -160,4 +155,3 @@ func (r *wikiRepositoryMongo) UpdateWiki(ctx context.Context, id primitive.Objec
 	_, err := r.collection.UpdateOne(ctx, filter, bson.M{"$set": wiki})
 	return err
 }
-

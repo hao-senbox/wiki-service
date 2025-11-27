@@ -1,9 +1,8 @@
 package request
 
 type CreateWikiTemplateRequest struct {
-	OrganizationID string    `json:"organization_id"`
-	Type           string    `json:"type"`
-	Elements       []Element `json:"elements"`
+	Type     string    `json:"type"`
+	Elements []Element `json:"elements"`
 }
 
 type Element struct {
