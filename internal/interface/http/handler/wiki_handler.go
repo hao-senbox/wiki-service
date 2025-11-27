@@ -173,6 +173,8 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 			return nil
 		}
 		language = &lang
+	} else {
+		language = nil
 	}
 
 	typeParam := c.Query("type")
