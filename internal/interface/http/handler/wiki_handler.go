@@ -24,19 +24,19 @@ func NewWikiHandler(wikiUseCase usecase.WikiUseCase) *WikiHandler {
 func (h *WikiHandler) CreateWikiTemplate(c *fiber.Ctx) error {
 	var req request.CreateWikiTemplateRequest
 	if err := c.BodyParser(&req); err != nil {
-		libs_helper.SendError(c, fiber.StatusBadRequest, err, libs_helper.ErrInvalidRequest)
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, err, libs_helper.ErrInvalidRequest)
 		return nil
 	}
 
 	userID, exists := c.Locals("user_id").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing userID")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing userID")
 		return nil
 	}
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -44,7 +44,7 @@ func (h *WikiHandler) CreateWikiTemplate(c *fiber.Ctx) error {
 
 	err := h.wikiUseCase.CreateWikiTemplate(ctx, req, userID)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 
@@ -54,13 +54,13 @@ func (h *WikiHandler) CreateWikiTemplate(c *fiber.Ctx) error {
 func (h *WikiHandler) GetTemplate(c *fiber.Ctx) error {
 	typeParam := c.Query("type")
 	if typeParam == "" {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
 		return nil
 	}
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -68,7 +68,7 @@ func (h *WikiHandler) GetTemplate(c *fiber.Ctx) error {
 
 	templates, err := h.wikiUseCase.GetTemplate(ctx, typeParam)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 
@@ -79,14 +79,14 @@ func (h *WikiHandler) GetStatistics(c *fiber.Ctx) error {
 	pageParam := c.Query("page", "1")
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid page parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid page parameter")
 		return nil
 	}
 
 	limitParam := c.Query("limit", "20")
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid limit parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid limit parameter")
 		return nil
 	}
 
@@ -95,7 +95,7 @@ func (h *WikiHandler) GetStatistics(c *fiber.Ctx) error {
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -103,7 +103,7 @@ func (h *WikiHandler) GetStatistics(c *fiber.Ctx) error {
 
 	statistics, err := h.wikiUseCase.GetStatistics(ctx, page, limit, typeParam, searchParam)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 
@@ -113,7 +113,7 @@ func (h *WikiHandler) GetStatistics(c *fiber.Ctx) error {
 func (h *WikiHandler) GetWikiByCode(c *fiber.Ctx) error {
 	code := c.Query("code")
 	if code == "" {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing code")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing code")
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func (h *WikiHandler) GetWikiByCode(c *fiber.Ctx) error {
 	if langParam := c.Query("language"); langParam != "" {
 		lang, err := strconv.Atoi(langParam)
 		if err != nil || lang < 0 {
-			libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
+			_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
 			return nil
 		}
 		language = &lang
@@ -129,13 +129,13 @@ func (h *WikiHandler) GetWikiByCode(c *fiber.Ctx) error {
 
 	typeParam := c.Query("type")
 	if typeParam == "" {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
 		return nil
 	}
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -143,7 +143,7 @@ func (h *WikiHandler) GetWikiByCode(c *fiber.Ctx) error {
 
 	wiki, err := h.wikiUseCase.GetWikiByCode(ctx, code, language, typeParam)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 
@@ -154,14 +154,14 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 	pageParam := c.Query("page", "1")
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid page parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid page parameter")
 		return nil
 	}
 
 	limitParam := c.Query("limit", "20")
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid limit parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid limit parameter")
 		return nil
 	}
 
@@ -169,7 +169,7 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 	if langParam := c.Query("language"); langParam != "" {
 		lang, err := strconv.Atoi(langParam)
 		if err != nil || lang < 0 {
-			libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
+			_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
 			return nil
 		}
 		language = &lang
@@ -179,7 +179,7 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 
 	typeParam := c.Query("type")
 	if typeParam == "" {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing type parameter")
 		return nil
 	}
 
@@ -187,7 +187,7 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -195,7 +195,7 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 
 	wikiResponses, total, err := h.wikiUseCase.GetWikis(ctx, page, limit, language, typeParam, searchParam)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 	totalPages := int((total + int64(limit) - 1) / int64(limit))
@@ -213,7 +213,7 @@ func (h *WikiHandler) GetWikis(c *fiber.Ctx) error {
 func (h *WikiHandler) GetWikiByID(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing id")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing id")
 		return nil
 	}
 
@@ -221,7 +221,7 @@ func (h *WikiHandler) GetWikiByID(c *fiber.Ctx) error {
 	if langParam := c.Query("language"); langParam != "" {
 		lang, err := strconv.Atoi(langParam)
 		if err != nil || lang < 0 {
-			libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
+			_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
 			return nil
 		}
 		language = &lang
@@ -229,7 +229,7 @@ func (h *WikiHandler) GetWikiByID(c *fiber.Ctx) error {
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -237,7 +237,7 @@ func (h *WikiHandler) GetWikiByID(c *fiber.Ctx) error {
 
 	wiki, err := h.wikiUseCase.GetWikiByID(ctx, id, language)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 
@@ -247,13 +247,13 @@ func (h *WikiHandler) GetWikiByID(c *fiber.Ctx) error {
 func (h *WikiHandler) UpdateWiki(c *fiber.Ctx) error {
 	id := c.Params("id")
 	if id == "" {
-		libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing id")
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Missing id")
 		return nil
 	}
 
 	token, exists := c.Locals("token").(string)
 	if !exists {
-		libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
+		_ = libs_helper.SendError(c, fiber.StatusUnauthorized, nil, "Missing token")
 		return nil
 	}
 
@@ -261,13 +261,13 @@ func (h *WikiHandler) UpdateWiki(c *fiber.Ctx) error {
 
 	var req request.UpdateWikiRequest
 	if err := c.BodyParser(&req); err != nil {
-		libs_helper.SendError(c, fiber.StatusBadRequest, err, libs_helper.ErrInvalidRequest)
+		_ = libs_helper.SendError(c, fiber.StatusBadRequest, err, libs_helper.ErrInvalidRequest)
 		return nil
 	}
 
 	err := h.wikiUseCase.UpdateWiki(ctx, id, req)
 	if err != nil {
-		libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
+		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
 	}
 

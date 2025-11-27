@@ -92,7 +92,7 @@ func (sd *serviceDiscovery) CallAPI(service *api.CatalogService, endpoint, metho
 	if err != nil {
 		return "", fmt.Errorf("failed to send request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read the response body
 	bodyBytes, err := io.ReadAll(resp.Body)

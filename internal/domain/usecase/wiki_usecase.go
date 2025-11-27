@@ -79,8 +79,8 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 	for i := 0; i < 6000; i++ {
 		code := fmt.Sprintf("%04d", i+1)
 		wikis[i] = entity.Wiki{
-			Type: req.Type,
-			Code: code,
+			Type:   req.Type,
+			Code:   code,
 			Public: 1,
 			Translation: []entity.Translation{
 				{
@@ -92,7 +92,7 @@ func (u *wikiUseCase) CreateWikiTemplate(ctx context.Context, req request.Create
 					Elements: cloneElements(templateElements),
 				},
 			},
-			Icon:      "",
+			ImageWiki: "",
 			CreatedBy: userID,
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -193,7 +193,9 @@ func (u *wikiUseCase) GetStatistics(ctx context.Context, page, limit int, typePa
 			}
 
 			number := 0
-			fmt.Sscanf(parts[0], "%d", &number)
+			if _, err := fmt.Sscanf(parts[0], "%d", &number); err != nil {
+				continue // Skip invalid element
+			}
 
 			element := response.ElementStatistics{
 				Number: number,
@@ -377,8 +379,8 @@ func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.Upd
 		return errors.New("wiki not found")
 	}
 
-	if req.Icon != nil {
-		wiki.Icon = *req.Icon
+	if req.ImageWiki != nil {
+		wiki.ImageWiki = *req.ImageWiki
 	}
 
 	if req.Public != nil {

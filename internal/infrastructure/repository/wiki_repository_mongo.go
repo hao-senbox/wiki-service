@@ -96,7 +96,11 @@ func (r *wikiRepositoryMongo) GetWikis(ctx context.Context, page, limit int, typ
 	if err != nil {
 		return nil, 0, err
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil {
+			_ = closeErr 
+		}
+	}()
 
 	wikis := make([]*entity.Wiki, 0, limit)
 

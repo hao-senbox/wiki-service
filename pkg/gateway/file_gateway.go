@@ -55,7 +55,7 @@ func buildMultipartBody(req file_gateway_dto.UploadFileRequest) (*bytes.Buffer, 
 		if err != nil {
 			return nil, "", fmt.Errorf("open file fail: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		part, err := writer.CreateFormFile("file", req.File.Filename)
 		if err != nil {
@@ -91,7 +91,7 @@ func buildMultipartBodyVideo(req file_gateway_dto.UploadVideoRequest) (*bytes.Bu
 		if err != nil {
 			return nil, "", fmt.Errorf("open file fail: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		part, err := writer.CreateFormFile("file", req.File.Filename)
 		if err != nil {
@@ -127,7 +127,7 @@ func buildMultipartBodyAudio(req file_gateway_dto.UploadAudioRequest) (*bytes.Bu
 		if err != nil {
 			return nil, "", fmt.Errorf("open file fail: %w", err)
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		part, err := writer.CreateFormFile("file", req.File.Filename)
 		if err != nil {

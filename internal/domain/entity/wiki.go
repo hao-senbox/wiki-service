@@ -12,7 +12,7 @@ type Wiki struct {
 	Code        string             `bson:"code" json:"code"`
 	Public      int                `bson:"public" json:"public"`
 	Translation []Translation      `bson:"translation" json:"translation"`
-	Icon        string             `bson:"icon" json:"icon"`
+	ImageWiki   string             `bson:"image_wiki" json:"image_wiki"`
 	CreatedBy   string             `bson:"created_by" json:"created_by"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`

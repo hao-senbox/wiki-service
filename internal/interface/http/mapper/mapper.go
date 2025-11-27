@@ -20,10 +20,22 @@ func WikiToResponse(
 		return nil
 	}
 
+	var imageWiki string
+	if wiki.ImageWiki != "" {
+		url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+			Key:  wiki.ImageWiki,
+			Mode: string(libs_constant.ImageModePublic),
+		})
+		if err == nil && url != nil {
+			imageWiki = *url
+		}
+	}
+
 	resp := &response.WikiResponse{
 		ID:            wiki.ID.Hex(),
 		Code:          wiki.Code,
-		Icon:          wiki.Icon,
+		ImageWiki:     imageWiki,
+		Public:        wiki.Public,
 		CreatedByUser: createdByUser,
 		CreatedAt:     wiki.CreatedAt,
 		UpdatedAt:     wiki.UpdatedAt,

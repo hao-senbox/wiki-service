@@ -7,7 +7,7 @@ type WikiResponse struct {
 	Code          string                `json:"code"`
 	Public        int                   `json:"public"`
 	Translation   []TranslationResponse `json:"translation"`
-	Icon          string                `json:"icon"`
+	ImageWiki     string                `json:"image_wiki"`
 	CreatedByUser *CreatedByUserInfo    `json:"creator,omitempty"`
 	CreatedAt     time.Time             `json:"created_at"`
 	UpdatedAt     time.Time             `json:"updated_at"`

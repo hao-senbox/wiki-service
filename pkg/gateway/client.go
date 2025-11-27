@@ -82,7 +82,7 @@ func (c *GatewayClient) Call(method, path string, body interface{}, headers map[
 	if err != nil {
 		return nil, fmt.Errorf("http call failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("http error: %s", resp.Status)
@@ -127,7 +127,7 @@ func (c *GatewayClient) CallWithMultipart(method, path string, body *bytes.Buffe
 		}
 		return nil, fmt.Errorf("http call failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		respBody, _ := io.ReadAll(resp.Body)
