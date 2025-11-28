@@ -32,23 +32,27 @@ type TranslationResponse struct {
 }
 
 type ElementResponse struct {
-	Number      int               `json:"number"`
-	Type        string            `json:"type"`
-	Value       *string           `json:"value,omitempty"`
-	PictureKeys []string          `json:"picture_keys,omitempty"`
-	ButtonUrl   ButtonUrlResponse `json:"button_url,omitempty"`
-	Button      ButtonResponse    `json:"button,omitempty"`
-	TopicID     *string           `json:"topic_id,omitempty"`
+	Number         int                `json:"number"`
+	Type           string             `json:"type"`
+	Value          *string            `json:"value,omitempty"`
+	ImageUrl       *string            `json:"image_url,omitempty"`
+	PdfUrl         *string            `json:"pdf_url,omitempty"`
+	PictureKeys    []string           `json:"picture_keys,omitempty"`
+	PictureKeysUrl []string           `json:"picture_keys_url,omitempty"`
+	ButtonUrl      *ButtonUrlResponse `json:"button_url,omitempty"`
+	Button         *ButtonResponse    `json:"button,omitempty"`
+	VideoID        *string            `json:"video_id,omitempty"`
 }
 
 type ButtonUrlResponse struct {
-	Title      string `json:"title"`
-	Url        string `json:"url"`
-	ButtonIcon string `json:"button_icon"`
+	Title         string `json:"title"`
+	ButtonUrl     string `json:"button_url"`
+	ButtonIcon    string `json:"button_icon"`
+	ButtonIconUrl string `json:"button_icon_url"`
 }
 
-
 type ButtonResponse struct {
-	Title      string `json:"title"`
-	ButtonIcon string `json:"button_icon"`
+	Title         string `json:"title"`
+	ButtonIcon    string `json:"button_icon"`
+	ButtonIconUrl string `json:"button_icon_url"`
 }

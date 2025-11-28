@@ -32,7 +32,7 @@ type Element struct {
 	Type        string   `bson:"type" json:"type"`
 	Value       *string  `bson:"value" json:"value"`
 	PictureKeys []string `bson:"picture_keys,omitempty" json:"picture_keys,omitempty"`
-	TopicID     *string  `bson:"topic_id" json:"topic_id"`
+	VideoID     *string  `bson:"video_id,omitempty" json:"video_id,omitempty"`
 }
 
 type WikiTemplate struct {

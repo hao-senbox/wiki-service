@@ -527,8 +527,8 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 
 			// Update common fields
 			existingElem.Type = reqElem.Type
-			if reqElem.TopicID != nil {
-				existingElem.TopicID = reqElem.TopicID
+			if reqElem.VideoID != nil {
+				existingElem.VideoID = reqElem.VideoID
 			}
 		} else {
 			// Element doesn't exist, add new one
@@ -551,8 +551,8 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 				}
 			}
 
-			if reqElem.TopicID != nil {
-				newElem.TopicID = reqElem.TopicID
+			if reqElem.VideoID != nil {
+				newElem.VideoID = reqElem.VideoID
 			}
 
 			translation.Elements = append(translation.Elements, newElem)
@@ -581,13 +581,30 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 				}
 			} else if existingElem.Value != nil && *existingElem.Value != "" {
 				// Handle other types
-				if strings.EqualFold(existingElem.Type, "image") {
+				if strings.EqualFold(existingElem.Type, "banner") {
 					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-						return fmt.Errorf("failed to delete removed image: %w", err)
+						log.Printf("failed to delete old picture: %v", err)
+						continue
 					}
-				} else if strings.EqualFold(existingElem.Type, "file") {
+				} else if strings.EqualFold(existingElem.Type, "large_picture") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else if strings.EqualFold(existingElem.Type, "graphic") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else if strings.EqualFold(existingElem.Type, "linked_in") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else {
 					if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
-						return fmt.Errorf("failed to delete removed file: %w", err)
+						log.Printf("failed to delete old pdf: %v", err)
+						continue
 					}
 				}
 			}
@@ -624,7 +641,7 @@ func convertElements(reqElements []request.Element, includeValues bool) []entity
 			Type:        elem.Type,
 			Value:       value,
 			PictureKeys: pictureKeys,
-			TopicID:     elem.TopicID,
+			VideoID:     elem.VideoID,
 		}
 	}
 

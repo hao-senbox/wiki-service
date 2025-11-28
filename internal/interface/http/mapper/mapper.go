@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"wiki-service/internal/domain/entity"
 	"wiki-service/internal/interface/http/dto/response.go"
@@ -45,123 +46,78 @@ func WikiToResponse(
 	for _, tran := range wiki.Translation {
 		elements := make([]response.ElementResponse, 0, len(tran.Elements))
 		for _, elem := range tran.Elements {
-			value := elem.Value
-			// topicID := elem.TopicID
-			if value != nil &&
-				strings.EqualFold(elem.Type, "picture") &&
-				fileGateway != nil &&
-				*value != "" {
-				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-					Key:  *value,
-					Mode: string(libs_constant.ImageModePublic),
-				})
-				if err == nil && url != nil {
-					value = url
+			value := elem.Value // giữ nguyên từ DB
+			var imageUrl *string
+			var pdfUrl *string
+
+			// Xử lý ảnh / PDF để gán URL hiển thị
+			if value != nil && fileGateway != nil {
+				switch strings.ToLower(elem.Type) {
+				case "large_picture", "banner", "linked_in", "graphic":
+					url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+						Key:  *value,
+						Mode: string(libs_constant.ImageModePublic),
+					})
+					if err == nil && url != nil {
+						imageUrl = url
+					}
+				case "document":
+					url, err := fileGateway.GetPDFUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+						Key:  *value,
+						Mode: string(libs_constant.ImageModePublic),
+					})
+					if err == nil && url != nil {
+						pdfUrl = url
+					}
 				}
 			}
 
-			if value != nil &&
-				strings.EqualFold(elem.Type, "large_picture") &&
-				fileGateway != nil &&
-				*value != "" {
-				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-					Key:  *value,
-					Mode: string(libs_constant.ImageModePublic),
-				})
-				if err == nil && url != nil {
-					value = url
+			// Xử lý button / button_url
+			var btn *response.ButtonResponse
+			var btnUrl *response.ButtonUrlResponse
+			if value != nil && *value != "" {
+				if strings.EqualFold(elem.Type, "button") {
+					_ = json.Unmarshal([]byte(*value), &btn)
+					if btn != nil && btn.ButtonIcon != "" {
+						btnIconUrl, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+							Key:  btn.ButtonIcon,
+							Mode: string(libs_constant.ImageModePublic),
+						})
+						if err == nil && btnIconUrl != nil {
+							btn.ButtonIconUrl = *btnIconUrl
+						}
+					}
+				} else if strings.EqualFold(elem.Type, "button_url") {
+					_ = json.Unmarshal([]byte(*value), &btnUrl)
+					if btnUrl != nil && btnUrl.ButtonIcon != "" {
+						btnIconUrl, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+							Key:  btnUrl.ButtonIcon,
+							Mode: string(libs_constant.ImageModePublic),
+						})
+						if err == nil && btnIconUrl != nil {
+							btnUrl.ButtonIconUrl = *btnIconUrl
+						}
+					}
 				}
 			}
 
-			if value != nil &&
-				strings.EqualFold(elem.Type, "banner") &&
-				fileGateway != nil &&
-				*value != "" {
-				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-					Key:  *value,
-					Mode: string(libs_constant.ImageModePublic),
-				})
-				if err == nil && url != nil {
-					value = url
-				}
-			}
-
-			if value != nil &&
-				strings.EqualFold(elem.Type, "linked_in") &&
-				fileGateway != nil &&
-				*value != "" {
-				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-					Key:  *value,
-					Mode: string(libs_constant.ImageModePublic),
-				})
-				if err == nil && url != nil {
-					value = url
-				}
-			}
-
-			if value != nil &&
-				strings.EqualFold(elem.Type, "graphic") &&
-				fileGateway != nil &&
-				*value != "" {
-				url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-					Key:  *value,
-					Mode: string(libs_constant.ImageModePublic),
-				})
-				if err == nil && url != nil {
-					value = url
-				}
-			}
-
-			if value != nil &&
-				strings.EqualFold(elem.Type, "document") &&
-				fileGateway != nil &&
-				*value != "" {
-				url, err := fileGateway.GetPDFUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-					Key:  *value,
-					Mode: string(libs_constant.ImageModePublic),
-				})
-				if err == nil && url != nil {
-					value = url
-				}
-			}
-
-			// if value != nil &&
-			// 	strings.EqualFold(elem.Type, "button_url") &&
-			// 	fileGateway != nil &&
-			// 	*value != "" {
-			// 	url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-			// 		Key:  *value,
-			// 		Mode: string(libs_constant.ImageModePublic),
-			// 	})
-			// }
-
-			// if topicID != nil &&
-			// 	strings.EqualFold(elem.Type, "video") &&
-			// 	fileGateway != nil &&
-			// 	*topicID != "" {
-			// 	url, err := fileGateway.GetVideoUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-			// 		Key:  *topicID,
-			// 		Mode: string(libs_constant.ImageModePublic),
-			// 	})
-			// }
-
-			// Handle picture keys for picture type
-			var pictureKeys []string
-			if strings.EqualFold(elem.Type, "picture") && len(elem.PictureKeys) > 0 {
-				pictureKeys = make([]string, len(elem.PictureKeys))
+			// Xử lý picture_keys
+			var pictureKeysUrl []string
+			if strings.EqualFold(elem.Type, "picture") && len(elem.PictureKeys) > 0 && fileGateway != nil {
+				pictureKeysUrl = make([]string, len(elem.PictureKeys))
 				for i, key := range elem.PictureKeys {
-					if key != "" && fileGateway != nil {
+					if key != "" {
 						url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
 							Key:  key,
 							Mode: string(libs_constant.ImageModePublic),
 						})
 						if err == nil && url != nil {
-							pictureKeys[i] = *url
+							pictureKeysUrl[i] = *url
 						} else {
-							pictureKeys[i] = key // fallback to original key if URL generation fails
+							pictureKeysUrl[i] = key
 						}
 					} else {
-						pictureKeys[i] = key
+						pictureKeysUrl[i] = key
 					}
 				}
 			}
@@ -169,9 +125,14 @@ func WikiToResponse(
 			elements = append(elements, response.ElementResponse{
 				Number:      elem.Number,
 				Type:        elem.Type,
-				Value:       value,
-				PictureKeys: pictureKeys,
-				TopicID:     elem.TopicID,
+				Value:       value,    // giữ nguyên DB
+				ImageUrl:    imageUrl, // URL hiển thị
+				PdfUrl:      pdfUrl,   // URL PDF nếu có
+				PictureKeys: elem.PictureKeys,
+				PictureKeysUrl: pictureKeysUrl,
+				Button:      btn,
+				ButtonUrl:   btnUrl,
+				VideoID:     elem.VideoID,
 			})
 		}
 
@@ -186,29 +147,4 @@ func WikiToResponse(
 	}
 
 	return resp
-}
-
-func WikiTemplateToResponse(template *entity.WikiTemplate) *response.WikiTemplateResponse {
-	if template == nil {
-		return nil
-	}
-
-	elements := make([]response.ElementResponse, 0, len(template.Elements))
-	for _, elem := range template.Elements {
-		elements = append(elements, response.ElementResponse{
-			Number:  elem.Number,
-			Type:    elem.Type,
-			Value:   elem.Value,
-			TopicID: elem.TopicID,
-		})
-	}
-
-	return &response.WikiTemplateResponse{
-		ID:        template.ID.Hex(),
-		Type:      template.Type,
-		Elements:  elements,
-		CreatedBy: template.CreatedBy,
-		CreatedAt: template.CreatedAt,
-		UpdatedAt: template.UpdatedAt,
-	}
 }
