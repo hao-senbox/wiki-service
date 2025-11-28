@@ -31,17 +31,20 @@ type wikiUseCase struct {
 	wikiRepo    repository.WikiRepository
 	fileGateway gateway.FileGateway
 	userGateway gateway.UserGateway
+	mediaGateway gateway.MediaGateway
 }
 
 func NewWikiUseCase(
 	wikiRepo repository.WikiRepository,
 	fileGateway gateway.FileGateway,
 	userGateway gateway.UserGateway,
+	mediaGateway gateway.MediaGateway,
 ) WikiUseCase {
 	return &wikiUseCase{
 		wikiRepo:    wikiRepo,
 		fileGateway: fileGateway,
 		userGateway: userGateway,
+		mediaGateway: mediaGateway,
 	}
 }
 
@@ -274,7 +277,7 @@ func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *
 		}
 	}
 
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, createdByUser), nil
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, u.mediaGateway, createdByUser), nil
 
 }
 
@@ -316,7 +319,7 @@ func (u *wikiUseCase) GetWikis(ctx context.Context, page, limit int, language *i
 	// Convert wikis to responses
 	responses := make([]*response.WikiResponse, len(wikis))
 	for i, wiki := range wikis {
-		responses[i] = mapper.WikiToResponse(ctx, wiki, u.fileGateway, currentUser)
+		responses[i] = mapper.WikiToResponse(ctx, wiki, u.fileGateway, u.mediaGateway, currentUser)
 	}
 
 	return responses, total, nil
@@ -358,7 +361,7 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		}
 	}
 
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, createdByUser), nil
+	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, u.mediaGateway,createdByUser), nil
 }
 
 func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error {

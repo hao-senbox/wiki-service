@@ -33,6 +33,7 @@ type Container struct {
 	App               *fiber.App
 	UserGateway       gateway.UserGateway
 	FileGateway       gateway.FileGateway
+	MediaGateway      gateway.MediaGateway
 	Consul            *api.Client
 	ConsulConn        consul.Client
 	CacheClientRedis  *cache.RedisCache
@@ -79,6 +80,9 @@ func NewContainer() (*Container, error) {
 	// Initialize gateway
 	c.initGateway()
 
+	// Initialize media gateway
+	c.initMediaGateway()
+
 	// Initialize file gateway
 	c.initFileGateway()
 
@@ -122,7 +126,7 @@ func (c *Container) initRepositories() {
 
 // initUseCases initializes all use cases
 func (c *Container) initUseCases() {
-	c.WikiUseCase = usecase.NewWikiUseCase(c.WikiRepository, c.FileGateway, c.UserGateway)
+	c.WikiUseCase = usecase.NewWikiUseCase(c.WikiRepository, c.FileGateway, c.UserGateway, c.MediaGateway)
 }
 
 // initHandlers initializes all HTTP handlers
@@ -164,6 +168,11 @@ func (c *Container) initGateway() {
 func (c *Container) initFileGateway() {
 	c.FileGateway = gateway.NewFileGateway("go-main-service", c.Consul, c.Logger)
 	c.Logger.Info("File gateway initialized successfully")
+}
+
+func (c *Container) initMediaGateway() {
+	c.MediaGateway = gateway.NewMediaGateway("media-service", c.Consul, c.Logger)
+	c.Logger.Info("Media gateway initialized successfully")
 }
 
 func (c *Container) initConsul() error {

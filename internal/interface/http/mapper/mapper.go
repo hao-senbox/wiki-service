@@ -8,6 +8,7 @@ import (
 	"wiki-service/internal/interface/http/dto/response.go"
 	"wiki-service/pkg/gateway"
 	file_gateway_dto "wiki-service/pkg/gateway/dto/file"
+	media_gateway_dto "wiki-service/pkg/gateway/dto/media"
 	libs_constant "wiki-service/pkg/libs/constant"
 )
 
@@ -15,6 +16,7 @@ func WikiToResponse(
 	ctx context.Context,
 	wiki *entity.Wiki,
 	fileGateway gateway.FileGateway,
+	mediaGateway gateway.MediaGateway,
 	createdByUser *response.CreatedByUserInfo,
 ) *response.WikiResponse {
 	if wiki == nil {
@@ -122,17 +124,26 @@ func WikiToResponse(
 				}
 			}
 
+			var videoUrl *string
+			if elem.VideoID != nil {
+				videoUrl, _ = mediaGateway.GetVideoUrl(ctx, media_gateway_dto.GetVideoUrlRequest{
+					VideoID:  *elem.VideoID,
+					Language: tran.Language,
+				})
+			}
+
 			elements = append(elements, response.ElementResponse{
-				Number:      elem.Number,
-				Type:        elem.Type,
-				Value:       value,    // giữ nguyên DB
-				ImageUrl:    imageUrl, // URL hiển thị
-				PdfUrl:      pdfUrl,   // URL PDF nếu có
-				PictureKeys: elem.PictureKeys,
+				Number:         elem.Number,
+				Type:           elem.Type,
+				Value:          value,    // giữ nguyên DB
+				ImageUrl:       imageUrl, // URL hiển thị
+				PdfUrl:         pdfUrl,   // URL PDF nếu có
+				PictureKeys:    elem.PictureKeys,
 				PictureKeysUrl: pictureKeysUrl,
-				Button:      btn,
-				ButtonUrl:   btnUrl,
-				VideoID:     elem.VideoID,
+				Button:         btn,
+				ButtonUrl:      btnUrl,
+				VideoID:        elem.VideoID,
+				VideoUrl:       videoUrl,
 			})
 		}
 

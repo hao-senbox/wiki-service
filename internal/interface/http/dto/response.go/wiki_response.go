@@ -42,6 +42,7 @@ type ElementResponse struct {
 	ButtonUrl      *ButtonUrlResponse `json:"button_url,omitempty"`
 	Button         *ButtonResponse    `json:"button,omitempty"`
 	VideoID        *string            `json:"video_id,omitempty"`
+	VideoUrl       *string            `json:"video_url,omitempty"`
 }
 
 type ButtonUrlResponse struct {
