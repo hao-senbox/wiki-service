@@ -456,123 +456,123 @@ func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.Upd
 	return u.wikiRepo.UpdateWiki(ctx, objectID, wiki)
 }
 
-func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Translation, reqElements []request.Element) error {
-    // Create a map of existing elements by number for quick lookup
-    existingElements := make(map[int]*entity.Element)
-    for i := range translation.Elements {
-        elem := &translation.Elements[i]
-        existingElements[elem.Number] = elem
-    }
+// func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Translation, reqElements []request.Element) error {
+//     // Create a map of existing elements by number for quick lookup
+//     existingElements := make(map[int]*entity.Element)
+//     for i := range translation.Elements {
+//         elem := &translation.Elements[i]
+//         existingElements[elem.Number] = elem
+//     }
 
-    // Create a map to track which elements are being updated
-    updatedNumbers := make(map[int]bool)
+//     // Create a map to track which elements are being updated
+//     updatedNumbers := make(map[int]bool)
 
-    // Process each element from request
-    for _, reqElem := range reqElements {
-        existingElem, exists := existingElements[reqElem.Number]
-        if exists {
-            // Element exists, update it
-            if strings.EqualFold(reqElem.Type, "picture") {
-                if len(reqElem.PictureKeys) > 0 {
-                    keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqElem.PictureKeys)
-                    if keysChanged {
-                        for _, oldKey := range existingElem.PictureKeys {
-                            if err := u.fileGateway.DeleteImage(ctx, oldKey); err != nil {
-                                log.Printf("failed to delete old picture: %v", err)
-                            }
-                        }
-                    }
-                    existingElem.PictureKeys = reqElem.PictureKeys
-                }
-            } else {
-                newValue := reqElem.Value
-                if newValue != nil && *newValue != "" {
-                    if existingElem.Value != nil && *existingElem.Value != *newValue {
-                        // Delete old file based on type
-                        if err := u.deleteOldFile(ctx, existingElem); err != nil {
-                            log.Printf("failed to delete old file: %v", err)
-                        }
-                    }
-                }
-                existingElem.Value = reqElem.Value
-            }
+//     // Process each element from request
+//     for _, reqElem := range reqElements {
+//         existingElem, exists := existingElements[reqElem.Number]
+//         if exists {
+//             // Element exists, update it
+//             if strings.EqualFold(reqElem.Type, "picture") {
+//                 if len(reqElem.PictureKeys) > 0 {
+//                     keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqElem.PictureKeys)
+//                     if keysChanged {
+//                         for _, oldKey := range existingElem.PictureKeys {
+//                             if err := u.fileGateway.DeleteImage(ctx, oldKey); err != nil {
+//                                 log.Printf("failed to delete old picture: %v", err)
+//                             }
+//                         }
+//                     }
+//                     existingElem.PictureKeys = reqElem.PictureKeys
+//                 }
+//             } else {
+//                 newValue := reqElem.Value
+//                 if newValue != nil && *newValue != "" {
+//                     if existingElem.Value != nil && *existingElem.Value != *newValue {
+//                         // Delete old file based on type
+//                         if err := u.deleteOldFile(ctx, existingElem); err != nil {
+//                             log.Printf("failed to delete old file: %v", err)
+//                         }
+//                     }
+//                 }
+//                 existingElem.Value = reqElem.Value
+//             }
 
-            existingElem.Type = reqElem.Type
-            if reqElem.VideoID != nil {
-                existingElem.VideoID = reqElem.VideoID
-            }
-        } else {
-            // Element doesn't exist, add new one
-            newElem := entity.Element{
-                Number: reqElem.Number,
-                Type:   reqElem.Type,
-            }
-            if strings.EqualFold(reqElem.Type, "picture") {
-                if len(reqElem.PictureKeys) > 0 {
-                    newElem.PictureKeys = reqElem.PictureKeys
-                    newElem.Value = &reqElem.PictureKeys[0]
-                }
-            } else {
-                if reqElem.Value != nil {
-                    newElem.Value = reqElem.Value
-                }
-            }
-            if reqElem.VideoID != nil {
-                newElem.VideoID = reqElem.VideoID
-            }
-            translation.Elements = append(translation.Elements, newElem)
-        }
-        updatedNumbers[reqElem.Number] = true
-    }
+//             existingElem.Type = reqElem.Type
+//             if reqElem.VideoID != nil {
+//                 existingElem.VideoID = reqElem.VideoID
+//             }
+//         } else {
+//             // Element doesn't exist, add new one
+//             newElem := entity.Element{
+//                 Number: reqElem.Number,
+//                 Type:   reqElem.Type,
+//             }
+//             if strings.EqualFold(reqElem.Type, "picture") {
+//                 if len(reqElem.PictureKeys) > 0 {
+//                     newElem.PictureKeys = reqElem.PictureKeys
+//                     newElem.Value = &reqElem.PictureKeys[0]
+//                 }
+//             } else {
+//                 if reqElem.Value != nil {
+//                     newElem.Value = reqElem.Value
+//                 }
+//             }
+//             if reqElem.VideoID != nil {
+//                 newElem.VideoID = reqElem.VideoID
+//             }
+//             translation.Elements = append(translation.Elements, newElem)
+//         }
+//         updatedNumbers[reqElem.Number] = true
+//     }
 
-    // Remove elements that are not in the request
-    var newElements []entity.Element
-    for i := range translation.Elements { // SỬ DỤNG INDEX
-        existingElem := &translation.Elements[i] // LẤY POINTER
-        if updatedNumbers[existingElem.Number] {
-            newElements = append(newElements, *existingElem) // DEREFERENCE để append giá trị đã update
-        } else {
-            // Delete files for removed elements
-            if err := u.deleteElementFiles(ctx, existingElem); err != nil {
-                log.Printf("failed to delete removed element files: %v", err)
-            }
-        }
-    }
-    translation.Elements = newElements
+//     // Remove elements that are not in the request
+//     var newElements []entity.Element
+//     for i := range translation.Elements { // SỬ DỤNG INDEX
+//         existingElem := &translation.Elements[i] // LẤY POINTER
+//         if updatedNumbers[existingElem.Number] {
+//             newElements = append(newElements, *existingElem) // DEREFERENCE để append giá trị đã update
+//         } else {
+//             // Delete files for removed elements
+//             if err := u.deleteElementFiles(ctx, existingElem); err != nil {
+//                 log.Printf("failed to delete removed element files: %v", err)
+//             }
+//         }
+//     }
+//     translation.Elements = newElements
 
-    return nil
-}
+//     return nil
+// }
 
-// Helper function to delete old file
-func (u *wikiUseCase) deleteOldFile(ctx context.Context, elem *entity.Element) error {
-    if elem.Value == nil || *elem.Value == "" {
-        return nil
-    }
+// // Helper function to delete old file
+// func (u *wikiUseCase) deleteOldFile(ctx context.Context, elem *entity.Element) error {
+//     if elem.Value == nil || *elem.Value == "" {
+//         return nil
+//     }
     
-    elemType := strings.ToLower(elem.Type)
-    switch elemType {
-    case "banner", "large_picture", "graphic", "linked_in":
-        return u.fileGateway.DeleteImage(ctx, *elem.Value)
-    default:
-        return u.fileGateway.DeletePDF(ctx, *elem.Value)
-    }
-}
+//     elemType := strings.ToLower(elem.Type)
+//     switch elemType {
+//     case "banner", "large_picture", "graphic", "linked_in":
+//         return u.fileGateway.DeleteImage(ctx, *elem.Value)
+//     default:
+//         return u.fileGateway.DeletePDF(ctx, *elem.Value)
+//     }
+// }
 
-// Helper function to delete element files
-func (u *wikiUseCase) deleteElementFiles(ctx context.Context, elem *entity.Element) error {
-    if strings.EqualFold(elem.Type, "picture") {
-        for _, key := range elem.PictureKeys {
-            if key != "" {
-                if err := u.fileGateway.DeleteImage(ctx, key); err != nil {
-                    return err
-                }
-            }
-        }
-    } else if elem.Value != nil && *elem.Value != "" {
-        return u.deleteOldFile(ctx, elem)
-    }
-    return nil
-}
+// // Helper function to delete element files
+// func (u *wikiUseCase) deleteElementFiles(ctx context.Context, elem *entity.Element) error {
+//     if strings.EqualFold(elem.Type, "picture") {
+//         for _, key := range elem.PictureKeys {
+//             if key != "" {
+//                 if err := u.fileGateway.DeleteImage(ctx, key); err != nil {
+//                     return err
+//                 }
+//             }
+//         }
+//     } else if elem.Value != nil && *elem.Value != "" {
+//         return u.deleteOldFile(ctx, elem)
+//     }
+//     return nil
+// }
 
 func convertElements(reqElements []request.Element, includeValues bool) []entity.Element {
 	elements := make([]entity.Element, len(reqElements))
@@ -663,5 +663,175 @@ func validateElements(elements []request.Element) error {
 			return errors.New("type is required")
 		}
 	}
+	return nil
+}
+
+
+func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Translation, reqElements []request.Element) error {
+	// Create a map of existing elements by number for quick lookup
+	existingElements := make(map[int]*entity.Element)
+	for i := range translation.Elements {
+		elem := &translation.Elements[i]
+		existingElements[elem.Number] = elem
+		fmt.Printf("existingElements: %+v\n", existingElements)
+	}
+
+	// Create a map to track which elements are being updated
+	updatedNumbers := make(map[int]bool)
+
+	// Process each element from request
+	for _, reqElem := range reqElements {
+		existingElem, exists := existingElements[reqElem.Number]
+		
+		if exists {
+			// Element exists, check if value changed
+			if strings.EqualFold(reqElem.Type, "picture") {
+				// Handle picture type - check if picture keys changed
+				if len(reqElem.PictureKeys) > 0 {
+					fmt.Printf("existingElem.PictureKeys: %v\n", existingElem.PictureKeys)
+					
+					// Compare picture keys arrays
+					keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqElem.PictureKeys)
+					
+					if keysChanged {
+						// Delete old pictures
+						for _, oldKey := range existingElem.PictureKeys {
+							if err := u.fileGateway.DeleteImage(ctx, oldKey); err != nil {
+								log.Printf("failed to delete old picture: %v", err)
+								continue
+							}
+						}
+					}
+					
+					// Update element with new picture keys
+					existingElem.PictureKeys = reqElem.PictureKeys
+				}
+			} else {
+				// Handle other types (text, image, file)
+				newValue := reqElem.Value
+				
+				if newValue != nil && *newValue != "" {
+					// If value changed, delete old image/file
+					if existingElem.Value != nil && *existingElem.Value != *newValue {
+						if strings.EqualFold(existingElem.Type, "banner") {
+							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+								log.Printf("failed to delete old picture: %v", err)
+								continue
+							}
+						} else if strings.EqualFold(existingElem.Type, "large_picture") {
+							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+								log.Printf("failed to delete old picture: %v", err)
+								continue
+							}
+						} else if strings.EqualFold(existingElem.Type, "graphic") {
+							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+								log.Printf("failed to delete old picture: %v", err)
+								continue
+							}
+						} else if strings.EqualFold(existingElem.Type, "linked_in") {
+							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+								log.Printf("failed to delete old picture: %v", err)
+								continue
+							}
+						} else if strings.EqualFold(existingElem.Type, "file") {
+							if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
+								log.Printf("failed to delete old pdf: %v", err)
+								continue
+							}
+						}
+					}
+				}
+				
+				existingElem.Value = reqElem.Value
+			}
+			
+			// Update common fields
+			existingElem.Type = reqElem.Type
+			if reqElem.VideoID != nil {
+				existingElem.VideoID = reqElem.VideoID
+			}
+		} else {
+			// Element doesn't exist, add new one
+			newElem := entity.Element{
+				Number: reqElem.Number,
+				Type:   reqElem.Type,
+			}
+			
+			if strings.EqualFold(reqElem.Type, "picture") {
+				// Handle picture type
+				if len(reqElem.PictureKeys) > 0 {
+					newElem.PictureKeys = reqElem.PictureKeys
+					// Set first key as main value for backward compatibility
+					newElem.Value = &reqElem.PictureKeys[0]
+				}
+			} else {
+				// Handle other types
+				if reqElem.Value != nil {
+					newElem.Value = reqElem.Value
+				}
+			}
+			
+			if reqElem.VideoID != nil {
+				newElem.VideoID = reqElem.VideoID
+			}
+			
+			translation.Elements = append(translation.Elements, newElem)
+		}
+		
+		updatedNumbers[reqElem.Number] = true
+	}
+
+	// Remove elements that are not in the request
+	// Create new elements slice, only keeping elements that were in the request or updated
+	var newElements []entity.Element
+	for _, existingElem := range translation.Elements {
+		if updatedNumbers[existingElem.Number] {
+			// Keep elements that were updated
+			newElements = append(newElements, existingElem)
+		} else {
+			// Delete image/file for elements that are being removed
+			if strings.EqualFold(existingElem.Type, "picture") {
+				// Delete all pictures in PictureKeys array
+				for _, key := range existingElem.PictureKeys {
+					if key != "" {
+						if err := u.fileGateway.DeleteImage(ctx, key); err != nil {
+							return fmt.Errorf("failed to delete removed picture: %w", err)
+						}
+					}
+				}
+			} else if existingElem.Value != nil && *existingElem.Value != "" {
+				// Handle other types
+				if strings.EqualFold(existingElem.Type, "banner") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else if strings.EqualFold(existingElem.Type, "large_picture") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else if strings.EqualFold(existingElem.Type, "graphic") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else if strings.EqualFold(existingElem.Type, "linked_in") {
+					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old picture: %v", err)
+						continue
+					}
+				} else {
+					if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
+						log.Printf("failed to delete old pdf: %v", err)
+						continue
+					}
+				}
+			}
+			// Element is removed, don't add to newElements
+		}
+	}
+	
+	translation.Elements = newElements
 	return nil
 }
