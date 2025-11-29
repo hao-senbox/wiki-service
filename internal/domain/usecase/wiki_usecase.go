@@ -260,8 +260,17 @@ func (u *wikiUseCase) GetWikiByCode(ctx context.Context, code string, language *
 		return nil, errors.New("wiki not found")
 	}
 
+	templateWiki, err := u.wikiRepo.GetTemplates(ctx, "wiki_web")
+	if err != nil {
+		return nil, err
+	}
+
+	if templateWiki == nil {
+		return nil, errors.New("template wiki not found")
+	}
+
 	if language != nil {
-		filterTranslations([]*entity.Wiki{wiki}, language)
+		filterTranslations([]*entity.Wiki{wiki}, language, templateWiki.Elements)
 	}
 
 	// Get user info for created_by
@@ -299,8 +308,17 @@ func (u *wikiUseCase) GetWikis(ctx context.Context, page, limit int, language *i
 		return nil, 0, err
 	}
 
+	templateWiki, err := u.wikiRepo.GetTemplates(ctx, "wiki_web")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if templateWiki == nil {
+		return nil, 0, errors.New("template wiki not found")
+	}
+
 	if language != nil {
-		filterTranslations(wikis, language)
+		filterTranslations(wikis, language, templateWiki.Elements)
 	}
 
 	// Get current user info once for all wikis
@@ -344,8 +362,17 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		return nil, errors.New("wiki not found")
 	}
 
+	templateWiki, err := u.wikiRepo.GetTemplates(ctx, "wiki_web")
+	if err != nil {
+		return nil, err
+	}
+
+	if templateWiki == nil {
+		return nil, errors.New("template wiki not found")
+	}
+
 	if language != nil {
-		filterTranslations([]*entity.Wiki{wiki}, language)
+		filterTranslations([]*entity.Wiki{wiki}, language, templateWiki.Elements)
 	}
 
 	// Get user info for created_by
@@ -456,124 +483,6 @@ func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.Upd
 	return u.wikiRepo.UpdateWiki(ctx, objectID, wiki)
 }
 
-// func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Translation, reqElements []request.Element) error {
-//     // Create a map of existing elements by number for quick lookup
-//     existingElements := make(map[int]*entity.Element)
-//     for i := range translation.Elements {
-//         elem := &translation.Elements[i]
-//         existingElements[elem.Number] = elem
-//     }
-
-//     // Create a map to track which elements are being updated
-//     updatedNumbers := make(map[int]bool)
-
-//     // Process each element from request
-//     for _, reqElem := range reqElements {
-//         existingElem, exists := existingElements[reqElem.Number]
-//         if exists {
-//             // Element exists, update it
-//             if strings.EqualFold(reqElem.Type, "picture") {
-//                 if len(reqElem.PictureKeys) > 0 {
-//                     keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqElem.PictureKeys)
-//                     if keysChanged {
-//                         for _, oldKey := range existingElem.PictureKeys {
-//                             if err := u.fileGateway.DeleteImage(ctx, oldKey); err != nil {
-//                                 log.Printf("failed to delete old picture: %v", err)
-//                             }
-//                         }
-//                     }
-//                     existingElem.PictureKeys = reqElem.PictureKeys
-//                 }
-//             } else {
-//                 newValue := reqElem.Value
-//                 if newValue != nil && *newValue != "" {
-//                     if existingElem.Value != nil && *existingElem.Value != *newValue {
-//                         // Delete old file based on type
-//                         if err := u.deleteOldFile(ctx, existingElem); err != nil {
-//                             log.Printf("failed to delete old file: %v", err)
-//                         }
-//                     }
-//                 }
-//                 existingElem.Value = reqElem.Value
-//             }
-
-//             existingElem.Type = reqElem.Type
-//             if reqElem.VideoID != nil {
-//                 existingElem.VideoID = reqElem.VideoID
-//             }
-//         } else {
-//             // Element doesn't exist, add new one
-//             newElem := entity.Element{
-//                 Number: reqElem.Number,
-//                 Type:   reqElem.Type,
-//             }
-//             if strings.EqualFold(reqElem.Type, "picture") {
-//                 if len(reqElem.PictureKeys) > 0 {
-//                     newElem.PictureKeys = reqElem.PictureKeys
-//                     newElem.Value = &reqElem.PictureKeys[0]
-//                 }
-//             } else {
-//                 if reqElem.Value != nil {
-//                     newElem.Value = reqElem.Value
-//                 }
-//             }
-//             if reqElem.VideoID != nil {
-//                 newElem.VideoID = reqElem.VideoID
-//             }
-//             translation.Elements = append(translation.Elements, newElem)
-//         }
-//         updatedNumbers[reqElem.Number] = true
-//     }
-
-//     // Remove elements that are not in the request
-//     var newElements []entity.Element
-//     for i := range translation.Elements { // SỬ DỤNG INDEX
-//         existingElem := &translation.Elements[i] // LẤY POINTER
-//         if updatedNumbers[existingElem.Number] {
-//             newElements = append(newElements, *existingElem) // DEREFERENCE để append giá trị đã update
-//         } else {
-//             // Delete files for removed elements
-//             if err := u.deleteElementFiles(ctx, existingElem); err != nil {
-//                 log.Printf("failed to delete removed element files: %v", err)
-//             }
-//         }
-//     }
-//     translation.Elements = newElements
-
-//     return nil
-// }
-
-// // Helper function to delete old file
-// func (u *wikiUseCase) deleteOldFile(ctx context.Context, elem *entity.Element) error {
-//     if elem.Value == nil || *elem.Value == "" {
-//         return nil
-//     }
-    
-//     elemType := strings.ToLower(elem.Type)
-//     switch elemType {
-//     case "banner", "large_picture", "graphic", "linked_in":
-//         return u.fileGateway.DeleteImage(ctx, *elem.Value)
-//     default:
-//         return u.fileGateway.DeletePDF(ctx, *elem.Value)
-//     }
-// }
-
-// // Helper function to delete element files
-// func (u *wikiUseCase) deleteElementFiles(ctx context.Context, elem *entity.Element) error {
-//     if strings.EqualFold(elem.Type, "picture") {
-//         for _, key := range elem.PictureKeys {
-//             if key != "" {
-//                 if err := u.fileGateway.DeleteImage(ctx, key); err != nil {
-//                     return err
-//                 }
-//             }
-//         }
-//     } else if elem.Value != nil && *elem.Value != "" {
-//         return u.deleteOldFile(ctx, elem)
-//     }
-//     return nil
-// }
-
 func convertElements(reqElements []request.Element, includeValues bool) []entity.Element {
 	elements := make([]entity.Element, len(reqElements))
 	for i, elem := range reqElements {
@@ -611,7 +520,7 @@ func cloneElements(elements []entity.Element) []entity.Element {
 	return cloned
 }
 
-func filterTranslations(wikis []*entity.Wiki, language *int) {
+func filterTranslations(wikis []*entity.Wiki, language *int, templateElements []entity.Element) {
 	for _, wiki := range wikis {
 		if wiki == nil {
 			continue
@@ -629,12 +538,14 @@ func filterTranslations(wikis []*entity.Wiki, language *int) {
 		}
 
 		if len(filtered) == 0 {
-			for _, translation := range wiki.Translation {
-				if translation.Language == nil {
-					filtered = append(filtered, translation)
-					break
-				}
-			}
+			filtered = append(filtered, entity.Translation{
+				Language: language,
+				Title:    nil,
+				Keywords: nil,
+				Level:    nil,
+				Unit:     nil,
+				Elements: templateElements,
+			})
 		}
 
 		wiki.Translation = filtered
@@ -666,7 +577,6 @@ func validateElements(elements []request.Element) error {
 	return nil
 }
 
-
 func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Translation, reqElements []request.Element) error {
 	// Create a map of existing elements by number for quick lookup
 	existingElements := make(map[int]*entity.Element)
@@ -682,17 +592,17 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 	// Process each element from request
 	for _, reqElem := range reqElements {
 		existingElem, exists := existingElements[reqElem.Number]
-		
+
 		if exists {
 			// Element exists, check if value changed
 			if strings.EqualFold(reqElem.Type, "picture") {
 				// Handle picture type - check if picture keys changed
 				if len(reqElem.PictureKeys) > 0 {
 					fmt.Printf("existingElem.PictureKeys: %v\n", existingElem.PictureKeys)
-					
+
 					// Compare picture keys arrays
 					keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqElem.PictureKeys)
-					
+
 					if keysChanged {
 						// Delete old pictures
 						for _, oldKey := range existingElem.PictureKeys {
@@ -702,14 +612,14 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 							}
 						}
 					}
-					
+
 					// Update element with new picture keys
 					existingElem.PictureKeys = reqElem.PictureKeys
 				}
 			} else {
 				// Handle other types (text, image, file)
 				newValue := reqElem.Value
-				
+
 				if newValue != nil && *newValue != "" {
 					// If value changed, delete old image/file
 					if existingElem.Value != nil && *existingElem.Value != *newValue {
@@ -741,10 +651,10 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 						}
 					}
 				}
-				
+
 				existingElem.Value = reqElem.Value
 			}
-			
+
 			// Update common fields
 			existingElem.Type = reqElem.Type
 			if reqElem.VideoID != nil {
@@ -756,7 +666,7 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 				Number: reqElem.Number,
 				Type:   reqElem.Type,
 			}
-			
+
 			if strings.EqualFold(reqElem.Type, "picture") {
 				// Handle picture type
 				if len(reqElem.PictureKeys) > 0 {
@@ -770,14 +680,14 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 					newElem.Value = reqElem.Value
 				}
 			}
-			
+
 			if reqElem.VideoID != nil {
 				newElem.VideoID = reqElem.VideoID
 			}
-			
+
 			translation.Elements = append(translation.Elements, newElem)
 		}
-		
+
 		updatedNumbers[reqElem.Number] = true
 	}
 
@@ -831,7 +741,7 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 			// Element is removed, don't add to newElements
 		}
 	}
-	
+
 	translation.Elements = newElements
 	return nil
 }
