@@ -159,3 +159,22 @@ func WikiToResponse(
 
 	return resp
 }
+
+func ElementsToResponse(elements []entity.Element) []response.ElementResponse {
+	if elements == nil {
+		return nil
+	}
+
+	resp := make([]response.ElementResponse, len(elements))
+	for i, elem := range elements {
+		resp[i] = response.ElementResponse{
+			Number:      elem.Number,
+			Type:        elem.Type,
+			Value:       elem.Value,
+			PictureKeys: elem.PictureKeys,
+			VideoID:     elem.VideoID,
+		}
+	}
+
+	return resp
+}

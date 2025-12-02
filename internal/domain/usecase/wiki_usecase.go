@@ -358,6 +358,15 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		return nil, err
 	}
 
+	wikiTemplate, err := u.wikiRepo.GetTemplates(ctx, wiki.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	if wikiTemplate == nil {
+		return nil, errors.New("template wiki not found")
+	}
+
 	if wiki == nil {
 		return nil, errors.New("wiki not found")
 	}
@@ -388,7 +397,10 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		}
 	}
 
-	return mapper.WikiToResponse(ctx, wiki, u.fileGateway, u.mediaGateway, createdByUser), nil
+	wikiRes := mapper.WikiToResponse(ctx, wiki, u.fileGateway, u.mediaGateway, createdByUser)
+	wikiRes.Elements = mapper.ElementsToResponse(templateWiki.Elements)
+
+	return wikiRes, nil
 }
 
 func (u *wikiUseCase) UpdateWiki(ctx context.Context, id string, req request.UpdateWikiRequest) error {
