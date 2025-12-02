@@ -6,7 +6,6 @@ type WikiResponse struct {
 	ID            string                `json:"id"`
 	Code          string                `json:"code"`
 	Public        int                   `json:"public"`
-	Elements      []ElementResponse     `json:"elements"`
 	Translation   []TranslationResponse `json:"translation"`
 	ImageWiki     string                `json:"image_wiki"`
 	CreatedByUser *CreatedByUserInfo    `json:"creator,omitempty"`

@@ -389,7 +389,6 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 	}
 
 	wikiRes := mapper.WikiToResponse(ctx, wiki, u.fileGateway, u.mediaGateway, createdByUser)
-	wikiRes.Elements = mapper.ElementsToResponse(templateWiki.Elements)
 
 	return wikiRes, nil
 }
