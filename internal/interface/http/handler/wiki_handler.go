@@ -117,15 +117,7 @@ func (h *WikiHandler) GetWikiByCode(c *fiber.Ctx) error {
 		return nil
 	}
 
-	var language *int
-	if langParam := c.Query("language"); langParam != "" {
-		lang, err := strconv.Atoi(langParam)
-		if err != nil || lang < 0 {
-			_ = libs_helper.SendError(c, fiber.StatusBadRequest, nil, "Invalid language parameter")
-			return nil
-		}
-		language = &lang
-	}
+	language := libs_helper.ParseAppLanguage(c.Get("X-App-Language"), 1)
 
 	typeParam := c.Query("type")
 	if typeParam == "" {
@@ -141,7 +133,9 @@ func (h *WikiHandler) GetWikiByCode(c *fiber.Ctx) error {
 
 	ctx := context.WithValue(c.Context(), libs_constant.Token, token)
 
-	wiki, err := h.wikiUseCase.GetWikiByCode(ctx, code, language, typeParam)
+	lang := int(language)
+	
+	wiki, err := h.wikiUseCase.GetWikiByCode(ctx, code, &lang, typeParam)
 	if err != nil {
 		_ = libs_helper.SendError(c, fiber.StatusInternalServerError, err, libs_helper.ErrInternal)
 		return nil
