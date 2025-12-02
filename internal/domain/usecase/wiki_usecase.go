@@ -371,10 +371,6 @@ func (u *wikiUseCase) GetWikiByID(ctx context.Context, id string, language *int)
 		return nil, errors.New("template wiki not found")
 	}
 
-	if wiki == nil {
-		return nil, errors.New("wiki not found")
-	}
-
 	templateWiki, err := u.wikiRepo.GetTemplates(ctx, "wiki_web")
 	if err != nil {
 		return nil, err
