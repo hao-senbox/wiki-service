@@ -1,6 +1,8 @@
 package libs_helper
 
 import (
+	"wiki-service/logger"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -34,6 +36,14 @@ func SendError(c *fiber.Ctx, statusCode int, err error, errorCode string) error 
 	} else {
 		errMsg = errorCode
 	}
+
+	// Ghi log lỗi
+	logger.WriteLogEx("error", errMsg, map[string]interface{}{
+		"status_code": statusCode,
+		"error_code":  errorCode,
+		"path":        c.Path(),
+		"method":      c.Method(),
+	})
 
 	return c.Status(statusCode).JSON(APIResponse{
 		StatusCode: statusCode,
