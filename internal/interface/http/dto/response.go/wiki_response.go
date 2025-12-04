@@ -1,6 +1,8 @@
 package response
 
-import "time"
+import (
+	"time"
+)
 
 type WikiResponse struct {
 	ID            string                `json:"id"`
@@ -35,6 +37,7 @@ type ElementResponse struct {
 	Number         int                `json:"number"`
 	Type           string             `json:"type"`
 	Value          *string            `json:"value,omitempty"`
+	ValueJson      *string            `json:"value_json,omitempty"`
 	ImageUrl       *string            `json:"image_url,omitempty"`
 	PdfUrl         *string            `json:"pdf_url,omitempty"`
 	PictureKeys    []string           `json:"picture_keys,omitempty"`
@@ -54,6 +57,7 @@ type ButtonUrlResponse struct {
 
 type ButtonResponse struct {
 	Title         string `json:"title"`
+	Code          string `json:"code"`
 	ButtonIcon    string `json:"button_icon"`
 	ButtonIconUrl string `json:"button_icon_url"`
 }

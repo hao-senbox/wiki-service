@@ -53,6 +53,7 @@ func WikiToResponse(
 			var pdfUrl *string
 
 			// Xử lý ảnh / PDF để gán URL hiển thị
+			var valueJson *string
 			if value != nil && fileGateway != nil {
 				switch strings.ToLower(elem.Type) {
 				case "large_picture", "banner", "linked_in", "graphic":
@@ -62,6 +63,14 @@ func WikiToResponse(
 					})
 					if err == nil && url != nil {
 						imageUrl = url
+						// Tạo JSON string object cho banner và các type image
+						jsonObj := map[string]string{
+							"key_url": *value,
+							"image_url": *url,
+						}
+						jsonBytes, _ := json.Marshal(jsonObj)
+						jsonStr := string(jsonBytes)
+						valueJson = &jsonStr
 					}
 				case "document":
 					url, err := fileGateway.GetPDFUrl(ctx, file_gateway_dto.GetFileUrlRequest{
@@ -70,6 +79,14 @@ func WikiToResponse(
 					})
 					if err == nil && url != nil {
 						pdfUrl = url
+					}
+				default:
+					// Cho các type khác, kiểm tra nếu value là JSON hợp lệ thì lưu vào value_json
+					if strings.TrimSpace(*value) != "" && (strings.HasPrefix(*value, "{") || strings.HasPrefix(*value, "[")) {
+						var temp interface{}
+						if json.Unmarshal([]byte(*value), &temp) == nil {
+							valueJson = value // Lưu toàn bộ JSON string
+						}
 					}
 				}
 			}
@@ -107,6 +124,7 @@ func WikiToResponse(
 			var pictureKeysUrl []string
 			if strings.EqualFold(elem.Type, "picture") && len(elem.PictureKeys) > 0 && fileGateway != nil {
 				pictureKeysUrl = make([]string, len(elem.PictureKeys))
+				pictureObjects := make([]map[string]string, 0, len(elem.PictureKeys))
 				for i, key := range elem.PictureKeys {
 					if key != "" {
 						url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
@@ -115,12 +133,30 @@ func WikiToResponse(
 						})
 						if err == nil && url != nil {
 							pictureKeysUrl[i] = *url
+							pictureObjects = append(pictureObjects, map[string]string{
+								"key_url": key,
+								"image_url": *url,
+							})
 						} else {
 							pictureKeysUrl[i] = key
+							pictureObjects = append(pictureObjects, map[string]string{
+								"key_url": key,
+								"image_url": key, // fallback to key if no URL
+							})
 						}
 					} else {
 						pictureKeysUrl[i] = key
+						pictureObjects = append(pictureObjects, map[string]string{
+							"key_url": key,
+							"image_url": key,
+						})
 					}
+				}
+				// Tạo JSON string array của objects cho picture type
+				if len(pictureObjects) > 0 {
+					jsonBytes, _ := json.Marshal(pictureObjects)
+					jsonStr := string(jsonBytes)
+					valueJson = &jsonStr
 				}
 			}
 
@@ -135,9 +171,10 @@ func WikiToResponse(
 			elements = append(elements, response.ElementResponse{
 				Number:         elem.Number,
 				Type:           elem.Type,
-				Value:          value,    // giữ nguyên DB
-				ImageUrl:       imageUrl, // URL hiển thị
-				PdfUrl:         pdfUrl,   // URL PDF nếu có
+				Value:          value,     // giữ nguyên DB
+				ValueJson:      valueJson, // JSON object chứa key và url
+				ImageUrl:       imageUrl,  // URL hiển thị
+				PdfUrl:         pdfUrl,    // URL PDF nếu có
 				PictureKeys:    elem.PictureKeys,
 				PictureKeysUrl: pictureKeysUrl,
 				Button:         btn,
