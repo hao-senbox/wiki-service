@@ -12,10 +12,16 @@ type UpdateWikiRequest struct {
 	Elements  []Element `json:"elements"`
 }
 
+type PictureItem struct {
+	Key   string  `json:"key"`
+	Order int     `json:"order"`
+	Title *string `json:"title,omitempty"`
+}
+
 type Element struct {
-	Number      int      `json:"number"`
-	Type        string   `json:"type"`
-	Value       *string  `json:"value,omitempty"`
-	PictureKeys []string `json:"picture_keys,omitempty"`
-	VideoID     *string  `json:"video_id,omitempty"`
+	Number      int          `json:"number"`
+	Type        string       `json:"type"`
+	Value       *string      `json:"value,omitempty"`
+	PictureKeys []PictureItem `json:"picture_keys,omitempty"`
+	VideoID     *string      `json:"video_id,omitempty"`
 }

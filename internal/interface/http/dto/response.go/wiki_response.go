@@ -4,6 +4,12 @@ import (
 	"time"
 )
 
+type PictureItem struct {
+	Key   string  `json:"key"`
+	Order int     `json:"order"`
+	Title *string `json:"title,omitempty"`
+}
+
 type WikiResponse struct {
 	ID            string                `json:"id"`
 	Code          string                `json:"code"`
@@ -33,15 +39,20 @@ type TranslationResponse struct {
 	Elements []ElementResponse `json:"elements"`
 }
 
+type PictureKeyUrl struct {
+	Order int    `json:"order"`
+	Url   string `json:"url"`
+}
+
 type ElementResponse struct {
 	Number         int                `json:"number"`
 	Type           string             `json:"type"`
 	Value          *string            `json:"value,omitempty"`
-	ValueJson      *string            `json:"value_json,omitempty"`
+	ValueJson      *string            `json:"value_json"`
 	ImageUrl       *string            `json:"image_url,omitempty"`
 	PdfUrl         *string            `json:"pdf_url,omitempty"`
-	PictureKeys    []string           `json:"picture_keys,omitempty"`
-	PictureKeysUrl []string           `json:"picture_keys_url,omitempty"`
+	PictureKeys    []PictureItem      `json:"picture_keys,omitempty"`
+	PictureKeysUrl []PictureKeyUrl    `json:"picture_keys_url,omitempty"`
 	ButtonUrl      *ButtonUrlResponse `json:"button_url,omitempty"`
 	Button         *ButtonResponse    `json:"button,omitempty"`
 	VideoID        *string            `json:"video_id,omitempty"`

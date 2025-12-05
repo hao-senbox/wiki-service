@@ -489,15 +489,23 @@ func convertElements(reqElements []request.Element, includeValues bool) []entity
 	elements := make([]entity.Element, len(reqElements))
 	for i, elem := range reqElements {
 		var value *string
-		var pictureKeys []string
+		var pictureKeys []entity.PictureItem
 
 		if includeValues {
 			if elem.Type == "picture" {
 				// For picture type, use the first picture key as value for backward compatibility
-				// and store all keys in PictureKeys
+				// and store all PictureItems in PictureKeys
 				if len(elem.PictureKeys) > 0 {
-					value = &elem.PictureKeys[0] // First key as main value
-					pictureKeys = elem.PictureKeys
+					value = &elem.PictureKeys[0].Key // First key as main value
+					// Convert request.PictureItem to entity.PictureItem
+					pictureKeys = make([]entity.PictureItem, len(elem.PictureKeys))
+					for j, reqItem := range elem.PictureKeys {
+						pictureKeys[j] = entity.PictureItem{
+							Key:   reqItem.Key,
+							Order: reqItem.Order,
+							Title: reqItem.Title,
+						}
+					}
 				}
 			} else {
 				value = elem.Value
@@ -554,17 +562,60 @@ func filterTranslations(wikis []*entity.Wiki, language *int, templateElements []
 	}
 }
 
-// pictureKeysEqual compares two slices of picture keys
-func (u *wikiUseCase) pictureKeysEqual(a, b []string) bool {
+// pictureKeysEqual compares two slices of picture keys (exact match)
+func (u *wikiUseCase) pictureKeysEqual(a, b []entity.PictureItem) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i, v := range a {
-		if i >= len(b) || v != b[i] {
+
+	// Sort both slices by Order before comparing
+	sortedA := make([]entity.PictureItem, len(a))
+	copy(sortedA, a)
+	for i := 0; i < len(sortedA)-1; i++ {
+		for j := i + 1; j < len(sortedA); j++ {
+			if sortedA[i].Order > sortedA[j].Order {
+				sortedA[i], sortedA[j] = sortedA[j], sortedA[i]
+			}
+		}
+	}
+
+	sortedB := make([]entity.PictureItem, len(b))
+	copy(sortedB, b)
+	for i := 0; i < len(sortedB)-1; i++ {
+		for j := i + 1; j < len(sortedB); j++ {
+			if sortedB[i].Order > sortedB[j].Order {
+				sortedB[i], sortedB[j] = sortedB[j], sortedB[i]
+			}
+		}
+	}
+
+	for i, v := range sortedA {
+		if i >= len(sortedB) || v.Key != sortedB[i].Key || v.Order != sortedB[i].Order {
 			return false
 		}
 	}
 	return true
+}
+
+// getKeysToDelete returns keys that exist in current DB but not in new request
+func (u *wikiUseCase) getKeysToDelete(currentKeys []entity.PictureItem, newKeys []entity.PictureItem) []string {
+	currentKeyMap := make(map[string]bool)
+	for _, item := range currentKeys {
+		currentKeyMap[item.Key] = true
+	}
+
+	var keysToDelete []string
+	for _, item := range newKeys {
+		if currentKeyMap[item.Key] {
+			delete(currentKeyMap, item.Key)
+		}
+	}
+
+	for key := range currentKeyMap {
+		keysToDelete = append(keysToDelete, key)
+	}
+
+	return keysToDelete
 }
 
 func validateElements(elements []request.Element) error {
@@ -585,7 +636,6 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 	for i := range translation.Elements {
 		elem := &translation.Elements[i]
 		existingElements[elem.Number] = elem
-		fmt.Printf("existingElements: %+v\n", existingElements)
 	}
 
 	// Create a map to track which elements are being updated
@@ -603,12 +653,22 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 					fmt.Printf("existingElem.PictureKeys: %v\n", existingElem.PictureKeys)
 
 					// Compare picture keys arrays
-					keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqElem.PictureKeys)
+					// Convert request.PictureItem to entity.PictureItem for comparison
+					reqPictureItems := make([]entity.PictureItem, len(reqElem.PictureKeys))
+					for j, reqItem := range reqElem.PictureKeys {
+						reqPictureItems[j] = entity.PictureItem{
+							Key:   reqItem.Key,
+							Order: reqItem.Order,
+							Title: reqItem.Title,
+						}
+					}
+					keysChanged := !u.pictureKeysEqual(existingElem.PictureKeys, reqPictureItems)
 
 					if keysChanged {
-						// Delete old pictures
-						for _, oldKey := range existingElem.PictureKeys {
-							if err := u.fileGateway.DeleteImage(ctx, oldKey); err != nil {
+						// Delete only pictures that are not in the new request
+						keysToDelete := u.getKeysToDelete(existingElem.PictureKeys, reqPictureItems)
+						for _, keyToDelete := range keysToDelete {
+							if err := u.fileGateway.DeleteImage(ctx, keyToDelete); err != nil {
 								log.Printf("failed to delete old picture: %v", err)
 								continue
 							}
@@ -616,7 +676,27 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 					}
 
 					// Update element with new picture keys
-					existingElem.PictureKeys = reqElem.PictureKeys
+					// Convert request.PictureItem to entity.PictureItem
+					existingElem.PictureKeys = make([]entity.PictureItem, len(reqElem.PictureKeys))
+					for j, reqItem := range reqElem.PictureKeys {
+						existingElem.PictureKeys[j] = entity.PictureItem{
+							Key:   reqItem.Key,
+							Order: reqItem.Order,
+							Title: reqItem.Title,
+						}
+					}
+				} else {
+					// Empty array - delete all existing pictures
+					if len(existingElem.PictureKeys) > 0 {
+						for _, oldPictureItem := range existingElem.PictureKeys {
+							if err := u.fileGateway.DeleteImage(ctx, oldPictureItem.Key); err != nil {
+								log.Printf("failed to delete old picture: %v", err)
+								continue
+							}
+						}
+						// Clear picture keys
+						existingElem.PictureKeys = []entity.PictureItem{}
+					}
 				}
 			} else {
 				// Handle other types (text, image, file)
@@ -672,9 +752,17 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 			if strings.EqualFold(reqElem.Type, "picture") {
 				// Handle picture type
 				if len(reqElem.PictureKeys) > 0 {
-					newElem.PictureKeys = reqElem.PictureKeys
+					// Convert request.PictureItem to entity.PictureItem
+					newElem.PictureKeys = make([]entity.PictureItem, len(reqElem.PictureKeys))
+					for j, reqItem := range reqElem.PictureKeys {
+						newElem.PictureKeys[j] = entity.PictureItem{
+							Key:   reqItem.Key,
+							Order: reqItem.Order,
+							Title: reqItem.Title,
+						}
+					}
 					// Set first key as main value for backward compatibility
-					newElem.Value = &reqElem.PictureKeys[0]
+					newElem.Value = &reqElem.PictureKeys[0].Key
 				}
 			} else {
 				// Handle other types
@@ -704,9 +792,9 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 			// Delete image/file for elements that are being removed
 			if strings.EqualFold(existingElem.Type, "picture") {
 				// Delete all pictures in PictureKeys array
-				for _, key := range existingElem.PictureKeys {
-					if key != "" {
-						if err := u.fileGateway.DeleteImage(ctx, key); err != nil {
+				for _, pictureItem := range existingElem.PictureKeys {
+					if pictureItem.Key != "" {
+						if err := u.fileGateway.DeleteImage(ctx, pictureItem.Key); err != nil {
 							return fmt.Errorf("failed to delete removed picture: %w", err)
 						}
 					}

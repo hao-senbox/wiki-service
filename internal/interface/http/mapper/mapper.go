@@ -65,7 +65,7 @@ func WikiToResponse(
 						imageUrl = url
 						// Tạo JSON string object cho banner và các type image
 						jsonObj := map[string]string{
-							"key_url": *value,
+							"key_url":   *value,
 							"image_url": *url,
 						}
 						jsonBytes, _ := json.Marshal(jsonObj)
@@ -121,34 +121,81 @@ func WikiToResponse(
 			}
 
 			// Xử lý picture_keys
-			var pictureKeysUrl []string
+			var pictureKeysUrl []response.PictureKeyUrl
+			var sortedPictureKeys []response.PictureItem
 			if strings.EqualFold(elem.Type, "picture") && len(elem.PictureKeys) > 0 && fileGateway != nil {
-				pictureKeysUrl = make([]string, len(elem.PictureKeys))
-				pictureObjects := make([]map[string]string, 0, len(elem.PictureKeys))
-				for i, key := range elem.PictureKeys {
+				// Sort by order trước khi xử lý
+				sortedPictureKeys = make([]response.PictureItem, len(elem.PictureKeys))
+				for i, item := range elem.PictureKeys {
+					sortedPictureKeys[i] = response.PictureItem{
+						Key:   item.Key,
+						Order: item.Order,
+						Title: item.Title,
+					}
+				}
+				// Sort by Order field
+				for i := 0; i < len(sortedPictureKeys)-1; i++ {
+					for j := i + 1; j < len(sortedPictureKeys); j++ {
+						if sortedPictureKeys[i].Order > sortedPictureKeys[j].Order {
+							sortedPictureKeys[i], sortedPictureKeys[j] = sortedPictureKeys[j], sortedPictureKeys[i]
+						}
+					}
+				}
+
+				pictureKeysUrl = make([]response.PictureKeyUrl, len(sortedPictureKeys))
+				pictureObjects := make([]map[string]interface{}, 0, len(sortedPictureKeys))
+				for i, pictureItem := range sortedPictureKeys {
+					key := pictureItem.Key
 					if key != "" {
 						url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
 							Key:  key,
 							Mode: string(libs_constant.ImageModePublic),
 						})
 						if err == nil && url != nil {
-							pictureKeysUrl[i] = *url
-							pictureObjects = append(pictureObjects, map[string]string{
-								"key_url": key,
+							pictureKeysUrl[i] = response.PictureKeyUrl{
+								Order: pictureItem.Order,
+								Url:   *url,
+							}
+							title := ""
+							if pictureItem.Title != nil {
+								title = *pictureItem.Title
+							}
+							pictureObjects = append(pictureObjects, map[string]interface{}{
+								"key_url":   key,
 								"image_url": *url,
+								"title":     title,
+								"order":     pictureItem.Order,
 							})
 						} else {
-							pictureKeysUrl[i] = key
-							pictureObjects = append(pictureObjects, map[string]string{
-								"key_url": key,
+							pictureKeysUrl[i] = response.PictureKeyUrl{
+								Order: pictureItem.Order,
+								Url:   key, // fallback to key if no URL
+							}
+							title := ""
+							if pictureItem.Title != nil {
+								title = *pictureItem.Title
+							}
+							pictureObjects = append(pictureObjects, map[string]interface{}{
+								"key_url":   key,
 								"image_url": key, // fallback to key if no URL
+								"title":     title,
+								"order":     pictureItem.Order,
 							})
 						}
 					} else {
-						pictureKeysUrl[i] = key
-						pictureObjects = append(pictureObjects, map[string]string{
-							"key_url": key,
+						pictureKeysUrl[i] = response.PictureKeyUrl{
+							Order: pictureItem.Order,
+							Url:   key,
+						}
+						title := ""
+						if pictureItem.Title != nil {
+							title = *pictureItem.Title
+						}
+						pictureObjects = append(pictureObjects, map[string]interface{}{
+							"key_url":   key,
 							"image_url": key,
+							"title":     title,
+							"order":     pictureItem.Order,
 						})
 					}
 				}
@@ -175,7 +222,7 @@ func WikiToResponse(
 				ValueJson:      valueJson, // JSON object chứa key và url
 				ImageUrl:       imageUrl,  // URL hiển thị
 				PdfUrl:         pdfUrl,    // URL PDF nếu có
-				PictureKeys:    elem.PictureKeys,
+				PictureKeys:    sortedPictureKeys,
 				PictureKeysUrl: pictureKeysUrl,
 				Button:         btn,
 				ButtonUrl:      btnUrl,
@@ -204,11 +251,32 @@ func ElementsToResponse(elements []entity.Element) []response.ElementResponse {
 
 	resp := make([]response.ElementResponse, len(elements))
 	for i, elem := range elements {
+		// Convert entity.PictureItem to response.PictureItem and sort by Order
+		var pictureKeys []response.PictureItem
+		if len(elem.PictureKeys) > 0 {
+			pictureKeys = make([]response.PictureItem, len(elem.PictureKeys))
+			for j, item := range elem.PictureKeys {
+				pictureKeys[j] = response.PictureItem{
+					Key:   item.Key,
+					Order: item.Order,
+					Title: item.Title,
+				}
+			}
+			// Sort by Order field
+			for j := 0; j < len(pictureKeys)-1; j++ {
+				for k := j + 1; k < len(pictureKeys); k++ {
+					if pictureKeys[j].Order > pictureKeys[k].Order {
+						pictureKeys[j], pictureKeys[k] = pictureKeys[k], pictureKeys[j]
+					}
+				}
+			}
+		}
+
 		resp[i] = response.ElementResponse{
 			Number:      elem.Number,
 			Type:        elem.Type,
 			Value:       elem.Value,
-			PictureKeys: elem.PictureKeys,
+			PictureKeys: pictureKeys,
 			VideoID:     elem.VideoID,
 		}
 	}
