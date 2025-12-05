@@ -795,7 +795,8 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 				for _, pictureItem := range existingElem.PictureKeys {
 					if pictureItem.Key != "" {
 						if err := u.fileGateway.DeleteImage(ctx, pictureItem.Key); err != nil {
-							return fmt.Errorf("failed to delete removed picture: %w", err)
+							log.Printf("failed to delete removed picture: %v", err)
+							continue
 						}
 					}
 				}
