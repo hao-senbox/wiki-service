@@ -19,9 +19,9 @@ type PictureItem struct {
 }
 
 type Element struct {
-	Number      int          `json:"number"`
-	Type        string       `json:"type"`
-	Value       *string      `json:"value,omitempty"`
+	Number      int           `json:"number"`
+	Type        string        `json:"type"`
+	Value       *string       `json:"value,omitempty"`
 	PictureKeys []PictureItem `json:"picture_keys,omitempty"`
-	VideoID     *string      `json:"video_id,omitempty"`
+	VideoID     *string       `json:"video_id,omitempty"`
 }
