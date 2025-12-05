@@ -618,14 +618,32 @@ func (u *wikiUseCase) getKeysToDelete(currentKeys []entity.PictureItem, newKeys 
 	return keysToDelete
 }
 
+// func validateElements(elements []request.Element) error {
+// 	for _, element := range elements {
+// 		if element.Number == 0 {
+// 			return errors.New("number is required")
+// 		}
+// 		if element.Type == "" {
+// 			return errors.New("type is required")
+// 		}
+// 	}
+// 	return nil
+// }
+
 func validateElements(elements []request.Element) error {
+	numberSet := make(map[int]bool)
+
 	for _, element := range elements {
-		if element.Number == 0 {
-			return errors.New("number is required")
+		if element.Number <= 0 {
+			return fmt.Errorf("element number must be positive, got: %d", element.Number)
 		}
 		if element.Type == "" {
 			return errors.New("type is required")
 		}
+		if numberSet[element.Number] {
+			return fmt.Errorf("duplicate element number: %d", element.Number)
+		}
+		numberSet[element.Number] = true
 	}
 	return nil
 }
@@ -640,6 +658,21 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 
 	// Create a map to track which elements are being updated
 	updatedNumbers := make(map[int]bool)
+
+	// Collect all file keys being used in the request (to avoid deleting files that are just repositioned)
+	requestFileKeys := make(map[string]bool)
+	for _, reqElem := range reqElements {
+		// Collect single file keys (banner, graphic, etc.)
+		if reqElem.Value != nil && *reqElem.Value != "" {
+			requestFileKeys[*reqElem.Value] = true
+		}
+		// Collect picture keys
+		for _, picItem := range reqElem.PictureKeys {
+			if picItem.Key != "" {
+				requestFileKeys[picItem.Key] = true
+			}
+		}
+	}
 
 	// Process each element from request
 	for _, reqElem := range reqElements {
@@ -704,33 +737,39 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 
 				if newValue != nil && *newValue != "" {
 					// If value changed, delete old image/file
+					// BUT only if the old file is not being used elsewhere in the request (position change)
 					if existingElem.Value != nil && *existingElem.Value != *newValue {
-						if strings.EqualFold(existingElem.Type, "banner") {
-							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-								log.Printf("failed to delete old picture: %v", err)
-								continue
-							}
-						} else if strings.EqualFold(existingElem.Type, "large_picture") {
-							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-								log.Printf("failed to delete old picture: %v", err)
-								continue
-							}
-						} else if strings.EqualFold(existingElem.Type, "graphic") {
-							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-								log.Printf("failed to delete old picture: %v", err)
-								continue
-							}
-						} else if strings.EqualFold(existingElem.Type, "linked_in") {
-							if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-								log.Printf("failed to delete old picture: %v", err)
-								continue
-							}
-						} else if strings.EqualFold(existingElem.Type, "file") {
-							if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
-								log.Printf("failed to delete old pdf: %v", err)
-								continue
+						// Check if old file is still being used in the request
+						if !requestFileKeys[*existingElem.Value] {
+							// File not in request anymore - safe to delete
+							if strings.EqualFold(existingElem.Type, "banner") {
+								if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+									log.Printf("failed to delete old banner: %v", err)
+									continue
+								}
+							} else if strings.EqualFold(existingElem.Type, "large_picture") {
+								if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+									log.Printf("failed to delete old large_picture: %v", err)
+									continue
+								}
+							} else if strings.EqualFold(existingElem.Type, "graphic") {
+								if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+									log.Printf("failed to delete old graphic: %v", err)
+									continue
+								}
+							} else if strings.EqualFold(existingElem.Type, "linked_in") {
+								if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+									log.Printf("failed to delete old linked_in: %v", err)
+									continue
+								}
+							} else if strings.EqualFold(existingElem.Type, "file") {
+								if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
+									log.Printf("failed to delete old pdf: %v", err)
+									continue
+								}
 							}
 						}
+						// If file is still in request, skip deletion (just position change)
 					}
 				}
 
@@ -790,10 +829,12 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 			newElements = append(newElements, existingElem)
 		} else {
 			// Delete image/file for elements that are being removed
+			// BUT only if the file is not being used in the request (position change)
 			if strings.EqualFold(existingElem.Type, "picture") {
 				// Delete all pictures in PictureKeys array
 				for _, pictureItem := range existingElem.PictureKeys {
-					if pictureItem.Key != "" {
+					if pictureItem.Key != "" && !requestFileKeys[pictureItem.Key] {
+						// File not in request - safe to delete
 						if err := u.fileGateway.DeleteImage(ctx, pictureItem.Key); err != nil {
 							log.Printf("failed to delete removed picture: %v", err)
 							continue
@@ -801,33 +842,37 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 					}
 				}
 			} else if existingElem.Value != nil && *existingElem.Value != "" {
-				// Handle other types
-				if strings.EqualFold(existingElem.Type, "banner") {
-					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-						log.Printf("failed to delete old picture: %v", err)
-						continue
-					}
-				} else if strings.EqualFold(existingElem.Type, "large_picture") {
-					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-						log.Printf("failed to delete old picture: %v", err)
-						continue
-					}
-				} else if strings.EqualFold(existingElem.Type, "graphic") {
-					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-						log.Printf("failed to delete old picture: %v", err)
-						continue
-					}
-				} else if strings.EqualFold(existingElem.Type, "linked_in") {
-					if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
-						log.Printf("failed to delete old picture: %v", err)
-						continue
-					}
-				} else {
-					if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
-						log.Printf("failed to delete old pdf: %v", err)
-						continue
+				// Check if file is still being used in request before deleting
+				if !requestFileKeys[*existingElem.Value] {
+					// File not in request - safe to delete
+					if strings.EqualFold(existingElem.Type, "banner") {
+						if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+							log.Printf("failed to delete old banner: %v", err)
+							continue
+						}
+					} else if strings.EqualFold(existingElem.Type, "large_picture") {
+						if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+							log.Printf("failed to delete old large_picture: %v", err)
+							continue
+						}
+					} else if strings.EqualFold(existingElem.Type, "graphic") {
+						if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+							log.Printf("failed to delete old graphic: %v", err)
+							continue
+						}
+					} else if strings.EqualFold(existingElem.Type, "linked_in") {
+						if err := u.fileGateway.DeleteImage(ctx, *existingElem.Value); err != nil {
+							log.Printf("failed to delete old linked_in: %v", err)
+							continue
+						}
+					} else {
+						if err := u.fileGateway.DeletePDF(ctx, *existingElem.Value); err != nil {
+							log.Printf("failed to delete old pdf: %v", err)
+							continue
+						}
 					}
 				}
+				// If file is still in request, skip deletion
 			}
 			// Element is removed, don't add to newElements
 		}

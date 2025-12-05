@@ -3,6 +3,7 @@ package mapper
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"strings"
 	"wiki-service/internal/domain/entity"
 	"wiki-service/internal/interface/http/dto/response.go"
@@ -71,6 +72,8 @@ func WikiToResponse(
 						jsonBytes, _ := json.Marshal(jsonObj)
 						jsonStr := string(jsonBytes)
 						valueJson = &jsonStr
+					} else {
+						log.Printf("failed to get image url: %v", err)
 					}
 				case "document":
 					url, err := fileGateway.GetPDFUrl(ctx, file_gateway_dto.GetFileUrlRequest{
