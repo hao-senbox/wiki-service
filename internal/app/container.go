@@ -52,7 +52,7 @@ func NewContainer() (*Container, error) {
 	c.Config = cfg
 
 	// Initialize logger
-	appLogger, err := logger.NewLogger("logs")
+	appLogger, err := logger.NewLogger("logs/wiki-service")
 	if err != nil {
 		return nil, err
 	}

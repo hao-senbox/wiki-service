@@ -3,8 +3,9 @@ package middleware
 import (
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"wiki-service/pkg/logger"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 // AuditMiddleware logs all requests for audit purposes
@@ -24,49 +25,31 @@ func (m *AuditMiddleware) Log() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 
-		// Process request first
+		// Read request payload
+		reqBody := c.Body()
+
+		// Process request
 		err := c.Next()
 
-		// Calculate duration
 		duration := time.Since(start)
 
-		// Get user ID from context if authenticated
-		var userID *int64
-		if uid := c.Locals("user_id"); uid != nil {
-			if id, ok := uid.(int64); ok {
-				userID = &id
-			}
-		}
-
-		// Determine action and resource
-		action := determineAction(c.Path(), c.Method())
-		resource := determineResource(c.Path())
-
-		// Get client info
-		ipAddress := c.IP()
-		userAgent := c.Get("User-Agent")
+		// Response payload
+		resBody := c.Response().Body()
 		statusCode := c.Response().StatusCode()
+		ip := c.IP()
 
-		// Log HTTP request
-		m.logger.HTTP(c.Method(), c.Path(), ipAddress, statusCode, duration, userID)
+		// Log HTTP (bạn giữ nguyên)
+		m.logger.HTTP(c.Method(), c.Path(), ip, statusCode, duration, nil)
 
-		// Log audit entry for important actions
+		// Check if should audit
 		if shouldAudit(c.Path(), c.Method()) {
-			errorMsg := ""
-			if statusCode >= 400 {
-				errorMsg = "request failed"
-			}
-
 			m.logger.Audit(
-				userID,
-				action,
-				resource,
-				c.Method(),
-				c.Path(),
-				ipAddress,
-				userAgent,
-				statusCode,
-				errorMsg,
+				c.Method(),      // method
+				c.Path(),        // endpoint
+				string(reqBody), // payload
+				string(resBody), // response
+				ip,              // ip
+				statusCode,      // status
 			)
 		}
 

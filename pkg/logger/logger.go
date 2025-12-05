@@ -67,32 +67,26 @@ func (l *Logger) Debug(message string) {
 }
 
 // Audit logs an audit entry
-func (l *Logger) Audit(userID *int64, action, resource, method, path, ipAddress, userAgent string, statusCode int, errorMsg string) {
+func (l *Logger) Audit(method, endpoint, payload, response, ipAddress string, statusCode int) {
 	timestamp := time.Now().UTC().Format(time.RFC3339)
-	
-	userIDStr := "anonymous"
-	if userID != nil {
-		userIDStr = fmt.Sprintf("%d", *userID)
-	}
 
-	errorPart := ""
-	if errorMsg != "" {
-		errorPart = fmt.Sprintf(" error=%q", errorMsg)
-	}
-
-	// Format: timestamp user_id action resource method path status_code ip user_agent [error]
 	logEntry := fmt.Sprintf(
-		`[AUDIT] timestamp=%s user_id=%s action=%s resource=%s method=%s path=%s status=%d ip=%s user_agent=%q%s`,
+		"\n------------------------------------------------------------------------------------------------\n"+
+			"timestamp=%s\n"+
+			"method=%s\n"+
+			"endpoint=%s\n"+
+			"payload=%s\n"+
+			"status=%d\n"+
+			"response=%s\n"+
+			"ip=%s"+
+			"\n------------------------------------------------------------------------------------------------\n",
 		timestamp,
-		userIDStr,
-		action,
-		resource,
 		method,
-		path,
+		endpoint,
+		payload,
 		statusCode,
+		response,
 		ipAddress,
-		userAgent,
-		errorPart,
 	)
 
 	l.auditLogger.Println(logEntry)
@@ -134,4 +128,3 @@ func (l *Logger) HTTP(method, path, ipAddress string, statusCode int, duration t
 
 	l.appLogger.Println(logEntry)
 }
-
