@@ -40,8 +40,9 @@ type TranslationResponse struct {
 }
 
 type PictureKeyUrl struct {
-	Order int    `json:"order"`
-	Url   string `json:"url"`
+	Order int     `json:"order"`
+	Url   string  `json:"url"`
+	Title *string `json:"title,omitempty"`
 }
 
 type ElementResponse struct {
@@ -53,6 +54,7 @@ type ElementResponse struct {
 	PdfUrl         *string            `json:"pdf_url,omitempty"`
 	PictureKeys    []PictureItem      `json:"picture_keys,omitempty"`
 	PictureKeysUrl []PictureKeyUrl    `json:"picture_keys_url,omitempty"`
+	Title          *TitleResponse     `json:"title,omitempty"`
 	ButtonUrl      *ButtonUrlResponse `json:"button_url,omitempty"`
 	Button         *ButtonResponse    `json:"button,omitempty"`
 	VideoID        *string            `json:"video_id,omitempty"`
@@ -71,4 +73,10 @@ type ButtonResponse struct {
 	Code          string `json:"code"`
 	ButtonIcon    string `json:"button_icon"`
 	ButtonIconUrl string `json:"button_icon_url"`
+}
+
+type TitleResponse struct {
+	Title    string `json:"title"`
+	ImageKey string `json:"image_key"`
+	ImageUrl string `json:"image_url"`
 }

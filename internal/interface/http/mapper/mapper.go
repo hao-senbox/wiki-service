@@ -123,6 +123,21 @@ func WikiToResponse(
 				}
 			}
 
+			var title *response.TitleResponse
+			if value != nil && *value != "" {
+				if strings.EqualFold(elem.Type, "title") {
+					_ = json.Unmarshal([]byte(*value), &title)
+					if title != nil && title.ImageKey != "" {
+						imageUrl, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+							Key:  title.ImageKey,
+							Mode: string(libs_constant.ImageModePublic),
+						})
+						if err == nil && imageUrl != nil {
+							title.ImageUrl = *imageUrl
+						}
+					}
+				}
+			}
 			// Xử lý picture_keys
 			var pictureKeysUrl []response.PictureKeyUrl
 			var sortedPictureKeys []response.PictureItem
@@ -158,6 +173,7 @@ func WikiToResponse(
 							pictureKeysUrl[i] = response.PictureKeyUrl{
 								Order: pictureItem.Order,
 								Url:   *url,
+								Title: pictureItem.Title,
 							}
 							title := ""
 							if pictureItem.Title != nil {
@@ -173,6 +189,7 @@ func WikiToResponse(
 							pictureKeysUrl[i] = response.PictureKeyUrl{
 								Order: pictureItem.Order,
 								Url:   key, // fallback to key if no URL
+								Title: pictureItem.Title,
 							}
 							title := ""
 							if pictureItem.Title != nil {
@@ -189,6 +206,7 @@ func WikiToResponse(
 						pictureKeysUrl[i] = response.PictureKeyUrl{
 							Order: pictureItem.Order,
 							Url:   key,
+							Title: pictureItem.Title,
 						}
 						title := ""
 						if pictureItem.Title != nil {
@@ -227,6 +245,7 @@ func WikiToResponse(
 				PdfUrl:         pdfUrl,    // URL PDF nếu có
 				PictureKeys:    sortedPictureKeys,
 				PictureKeysUrl: pictureKeysUrl,
+				Title:          title,
 				Button:         btn,
 				ButtonUrl:      btnUrl,
 				VideoID:        elem.VideoID,
