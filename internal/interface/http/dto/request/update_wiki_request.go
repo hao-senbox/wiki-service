@@ -24,4 +24,5 @@ type Element struct {
 	Value       *string       `json:"value,omitempty"`
 	PictureKeys []PictureItem `json:"picture_keys,omitempty"`
 	VideoID     *string       `json:"video_id,omitempty"`
+	Status      string        `json:"status"`
 }

@@ -572,6 +572,9 @@ func validateElements(elements []request.Element) error {
 		if element.Type == "" {
 			return errors.New("type is required")
 		}
+		if element.Status == "" {
+			return errors.New("status is required")
+		}
 		if numberSet[element.Number] {
 			return fmt.Errorf("duplicate element number: %d", element.Number)
 		}

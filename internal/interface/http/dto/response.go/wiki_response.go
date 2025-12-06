@@ -48,6 +48,7 @@ type PictureKeyUrl struct {
 type ElementResponse struct {
 	Number         int                `json:"number"`
 	Type           string             `json:"type"`
+	Status         string             `json:"status"`
 	Value          *string            `json:"value,omitempty"`
 	ValueJson      *string            `json:"value_json"`
 	ImageUrl       *string            `json:"image_url,omitempty"`

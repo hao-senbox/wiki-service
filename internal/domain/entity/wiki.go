@@ -33,11 +33,12 @@ type Element struct {
 	Value       *string       `bson:"value" json:"value"`
 	PictureKeys []PictureItem `bson:"picture_keys" json:"picture_keys"`
 	VideoID     *string       `bson:"video_id,omitempty" json:"video_id,omitempty"`
+	Status      string        `bson:"status" json:"status"`
 }
 type PictureItem struct {
-	Key   string  `bson:"key" json:"key"`	
+	Key   string  `bson:"key" json:"key"`
 	Order int     `bson:"order" json:"order"`
-	Title *string `bson:"title,omitempty" json:"title,omitempty"` 
+	Title *string `bson:"title,omitempty" json:"title,omitempty"`
 }
 
 type WikiTemplate struct {

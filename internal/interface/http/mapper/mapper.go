@@ -126,14 +126,23 @@ func WikiToResponse(
 			var title *response.TitleResponse
 			if value != nil && *value != "" {
 				if strings.EqualFold(elem.Type, "title") {
-					_ = json.Unmarshal([]byte(*value), &title)
-					if title != nil && title.ImageKey != "" {
-						imageUrl, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
-							Key:  title.ImageKey,
-							Mode: string(libs_constant.ImageModePublic),
-						})
-						if err == nil && imageUrl != nil {
-							title.ImageUrl = *imageUrl
+					// Thử parse JSON trước
+					title = &response.TitleResponse{}
+					if err := json.Unmarshal([]byte(*value), title); err != nil {
+						// Nếu không phải JSON, coi như plain string và tạo object
+						title.Title = *value // Plain string làm title
+						title.ImageKey = ""  // Không có image
+						title.ImageUrl = ""  // Không có image URL
+					} else {
+						// Là JSON object, xử lý image như cũ
+						if title.ImageKey != "" {
+							url, err := fileGateway.GetImageUrl(ctx, file_gateway_dto.GetFileUrlRequest{
+								Key:  title.ImageKey,
+								Mode: string(libs_constant.ImageModePublic),
+							})
+							if err == nil && url != nil {
+								title.ImageUrl = *url
+							}
 						}
 					}
 				}
@@ -239,6 +248,7 @@ func WikiToResponse(
 			elements = append(elements, response.ElementResponse{
 				Number:         elem.Number,
 				Type:           elem.Type,
+				Status:         elem.Status,
 				Value:          value,     // giữ nguyên DB
 				ValueJson:      valueJson, // JSON object chứa key và url
 				ImageUrl:       imageUrl,  // URL hiển thị
