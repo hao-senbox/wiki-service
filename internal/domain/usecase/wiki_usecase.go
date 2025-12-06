@@ -620,6 +620,7 @@ func (u *wikiUseCase) mergeElements(ctx context.Context, translation *entity.Tra
 		newElem := entity.Element{
 			Number: reqElem.Number,
 			Type:   reqElem.Type,
+			Status: reqElem.Status,
 		}
 
 		// Handle picture type
